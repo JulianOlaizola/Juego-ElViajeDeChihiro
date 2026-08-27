@@ -20,19 +20,20 @@ los jugadores cercanos).
 ## Tecnologías
 - Lenguaje: Java 17 (LTS)
 - Framework: LibGDX 1.14.2
-- Build: Gradle
+- Build: Gradle 9.6.1 (incluido en el wrapper del repositorio, no hace falta instalarlo)
 - Mapas: Tiled Map Editor (.tmx)
 - Red: sockets de Java (TCP + UDP), modelo cliente-servidor
 - IDE: IntelliJ IDEA / Eclipse
-- Plataforma objetivo: Escritorio (LWJGL3). No apuntamos a Web ni Móvil porque la parte
+- Plataforma objetivo: Escritorio (LWJGL3 3.4.1). No apuntamos a Web ni Móvil porque la parte
   de red usa sockets de Java que no corren en el navegador.
 
 ## Propuesta detallada (Wiki)
-La propuesta completa está en la Wiki del repo:
+La propuesta completa del proyecto está en la página principal de la Wiki:
 https://github.com/JulianOlaizola/Juego-ElViajeDeChihiro/wiki/Propuesta-del-Proyecto
 
 ## Cómo compilar y ejecutar
-Requisitos: Java 17+ y Git.
+Requisitos: JDK 17 o superior y Git. No hace falta instalar Gradle: el wrapper incluido en
+el repositorio descarga la versión 9.6.1 la primera vez que lo ejecutás.
 
 1. Clonar el repositorio:
 
@@ -55,6 +56,10 @@ Requisitos: Java 17+ y Git.
 
 Para jugar en red: un jugador inicia el servidor (Hostear) y el otro se conecta como
 cliente ingresando la IP del host. Las dos máquinas tienen que estar en la misma red local.
+
+## Historial de cambios
+Los cambios de cada versión están registrados en [CHANGELOG.md](CHANGELOG.md), siguiendo el
+formato Keep a Changelog y versionado semántico.
 
 ## Estado actual
 Pre-entrega N°1: configuración inicial del proyecto y del repositorio. Base de LibGDX
