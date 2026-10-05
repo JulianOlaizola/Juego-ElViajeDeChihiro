@@ -32,4 +32,9 @@ public final class Constantes {
     public static final int CUADROS_POR_FILA = 4;
     public static final int DIRECCIONES = 4;
     public static final float DURACION_CUADRO = 0.12f;
+
+    public static final String ARCHIVO_PREFERENCIAS = "chihiro-preferencias";
+    public static final float VOLUMEN_MUSICA_INICIAL = 0.55f;
+    public static final float VOLUMEN_EFECTOS_INICIAL = 0.8f;
+    public static final float PASO_VOLUMEN = 0.1f;
 }

@@ -9,15 +9,17 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 
+import juego.chihiro.audio.AdministradorAudio;
+import juego.chihiro.entradas.Accion;
 import juego.chihiro.entradas.ControladorEntradas;
 import juego.chihiro.pantallas.PantallaCarga;
 import juego.chihiro.utiles.Recursos;
 
-/** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class Main extends Game {
     private SpriteBatch batch;
     private AssetManager assets;
     private ControladorEntradas entradas;
+    private AdministradorAudio audio;
     private Recursos recursos;
 
     @Override
@@ -35,6 +37,19 @@ public class Main extends Game {
 
     public void prepararRecursos() {
         recursos = new Recursos(assets);
+        audio = new AdministradorAudio(assets);
+    }
+
+    public void atenderControlesDeAudio() {
+        if (entradas.consumir(Accion.SILENCIAR)) {
+            audio.alternarSilencio();
+        }
+        if (entradas.consumir(Accion.SUBIR_VOLUMEN)) {
+            audio.subirVolumen();
+        }
+        if (entradas.consumir(Accion.BAJAR_VOLUMEN)) {
+            audio.bajarVolumen();
+        }
     }
 
     public void cambiarPantalla(Screen nueva) {
@@ -59,6 +74,10 @@ public class Main extends Game {
         return entradas;
     }
 
+    public AdministradorAudio getAudio() {
+        return audio;
+    }
+
     public Recursos getRecursos() {
         return recursos;
     }
@@ -71,6 +90,9 @@ public class Main extends Game {
         }
         if (recursos != null) {
             recursos.dispose();
+        }
+        if (audio != null) {
+            audio.dispose();
         }
         assets.dispose();
         batch.dispose();
