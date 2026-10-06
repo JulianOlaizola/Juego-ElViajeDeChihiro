@@ -29,7 +29,6 @@ public class PantallaCarga extends ScreenAdapter {
     private final BitmapFont fuente = new BitmapFont();
 
     private float progresoMostrado;
-    private boolean recursosListos;
 
     public PantallaCarga(Main juego) {
         this.juego = juego;
@@ -58,8 +57,8 @@ public class PantallaCarga extends ScreenAdapter {
         boolean termino = juego.getAssets().update();
 
         progresoMostrado = MathUtils.lerp(progresoMostrado,
-                                          juego.getAssets().getProgress(),
-                                          Math.min(1f, delta * 8f));
+            juego.getAssets().getProgress(),
+            Math.min(1f, delta * 8f));
 
         ScreenUtils.clear(0.07f, 0.05f, 0.09f, 1f);
         vista.apply();
@@ -68,9 +67,9 @@ public class PantallaCarga extends ScreenAdapter {
         dibujarBarra();
         dibujarTexto();
 
-        if (termino && progresoMostrado > 0.99f && !recursosListos) {
+        if (termino && progresoMostrado > 0.99f) {
             juego.prepararRecursos();
-            recursosListos = true;
+            juego.cambiarPantalla(new PantallaJuego(juego));
         }
     }
 

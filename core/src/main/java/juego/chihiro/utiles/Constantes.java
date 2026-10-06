@@ -9,6 +9,11 @@ public final class Constantes {
 
     public static final String RUTA_MAPA = "mapas/salon.tmx";
     public static final int TAM_TILE = 32;
+    public static final String CAPA_PISO = "piso";
+    public static final String CAPA_DECORACION = "decoracion";
+    public static final String CAPA_COLISIONES = "colisiones";
+    public static final String CAPA_INTERACTIVOS = "interactivos";
+    public static final String PROPIEDAD_TIPO = "tipo";
 
     public static final String RUTA_JUGADORES = "imagenes/jugadores.png";
     public static final String RUTA_ESPIRITUS = "imagenes/espiritus.png";
