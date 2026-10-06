@@ -38,6 +38,15 @@ public final class Constantes {
     public static final int DIRECCIONES = 4;
     public static final float DURACION_CUADRO = 0.12f;
 
+    public static final float VELOCIDAD_JUGADOR = 150f;
+    public static final float ANCHO_HITBOX = 18f;
+    public static final float ALTO_HITBOX = 12f;
+    public static final float ALCANCE_INTERACCION = 20f;
+    public static final float MARGEN_ZONA_INTERACCION = 8f;
+    public static final float DESFASE_HITBOX_Y = 3f;
+
+    public static final float SUAVIZADO_CAMARA = 5f;
+
     public static final String ARCHIVO_PREFERENCIAS = "chihiro-preferencias";
     public static final float VOLUMEN_MUSICA_INICIAL = 0.55f;
     public static final float VOLUMEN_EFECTOS_INICIAL = 0.8f;
