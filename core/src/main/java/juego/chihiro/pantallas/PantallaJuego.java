@@ -1,113 +1,110 @@
-package juego.chihiro.entidades;
+package juego.chihiro.pantallas;
 
+import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
+import juego.chihiro.Main;
+import juego.chihiro.entidades.Jugador;
 import juego.chihiro.entradas.ControladorEntradas;
 import juego.chihiro.mundo.MapaCasaBanos;
-import juego.chihiro.mundo.ObjetoEnMano;
 import juego.chihiro.utiles.Constantes;
 import juego.chihiro.utiles.Recursos;
 
-public class Jugador extends Entidad {
-    private final int numero;
+public class PantallaJuego extends ScreenAdapter {
+    private final Main juego;
     private final Recursos recursos;
     private final ControladorEntradas entradas;
+
+    private final OrthographicCamera camaraMundo = new OrthographicCamera();
+    private final Viewport vistaMundo;
+
     private final MapaCasaBanos mapa;
+    private final OrthogonalTiledMapRenderer renderizadorMapa;
+    private final Jugador jugador1;
+    private final Jugador jugador2;
 
-    private final Rectangle zonaInteraccion = new Rectangle();
+    public PantallaJuego(Main juego) {
+        this.juego = juego;
+        this.recursos = juego.getRecursos();
+        this.entradas = juego.getEntradas();
 
-    private Direccion direccion = Direccion.ABAJO;
-    private ObjetoEnMano objetoEnMano = ObjetoEnMano.NADA;
-    private boolean enMovimiento;
+        vistaMundo = new FitViewport(Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA, camaraMundo);
 
-    public Jugador(int numero, float x, float y, Recursos recursos,
-                   ControladorEntradas entradas, MapaCasaBanos mapa) {
-        super(x + (Constantes.TAM_TILE - Constantes.ANCHO_HITBOX) / 2f,
-            y + Constantes.DESFASE_HITBOX_Y,
-            Constantes.ANCHO_HITBOX,
-            Constantes.ALTO_HITBOX);
-        this.numero = numero;
-        this.recursos = recursos;
-        this.entradas = entradas;
-        this.mapa = mapa;
-        actualizarZonaInteraccion();
+        mapa = new MapaCasaBanos(juego.getAssets());
+
+        renderizadorMapa = new OrthogonalTiledMapRenderer(mapa.getMapa(), 1f, juego.getBatch());
+
+        jugador1 = new Jugador(1, mapa.getAparicionJugador1().x, mapa.getAparicionJugador1().y,
+            recursos, entradas, mapa);
+        jugador2 = new Jugador(2, mapa.getAparicionJugador2().x, mapa.getAparicionJugador2().y,
+            recursos, entradas, mapa);
+
+        camaraMundo.position.set(jugador1.getCentroX(), jugador1.getCentroY(), 0f);
     }
 
     @Override
-    public void actualizar(float delta) {
-        float ejeX = entradas.ejeHorizontal(numero);
-        float ejeY = entradas.ejeVertical(numero);
-        enMovimiento = ejeX != 0f || ejeY != 0f;
-
-        if (enMovimiento) {
-            direccion = Direccion.desdeVector(ejeX, ejeY);
-
-            float largo = (float) Math.sqrt(ejeX * ejeX + ejeY * ejeY);
-            ejeX /= largo;
-            ejeY /= largo;
-            mover(ejeX * Constantes.VELOCIDAD_JUGADOR * delta,
-                ejeY * Constantes.VELOCIDAD_JUGADOR * delta);
-
-            tiempoAnimacion += delta;
-        } else {
-            tiempoAnimacion = 0f;
-        }
-
-        actualizarZonaInteraccion();
+    public void render(float delta) {
+        actualizar(delta);
+        dibujar();
     }
 
-    private void mover(float dx, float dy) {
-        hitbox.x += dx;
-        if (mapa.choca(hitbox)) {
-            hitbox.x -= dx;
-        }
-        hitbox.y += dy;
-        if (mapa.choca(hitbox)) {
-            hitbox.y -= dy;
-        }
+    private void actualizar(float delta) {
+        juego.atenderControlesDeAudio();
+
+        jugador1.actualizar(delta);
+        jugador2.actualizar(delta);
+
+        seguirConLaCamara(delta);
+
+        entradas.limpiarAcciones();
     }
 
-    private void actualizarZonaInteraccion() {
-        float ancho = hitbox.width + Constantes.MARGEN_ZONA_INTERACCION;
-        float alto = hitbox.height + Constantes.MARGEN_ZONA_INTERACCION;
-        zonaInteraccion.set(
-            getCentroX() - ancho / 2f + direccion.getX() * Constantes.ALCANCE_INTERACCION,
-            getCentroY() - alto / 2f + direccion.getY() * Constantes.ALCANCE_INTERACCION,
-            ancho,
-            alto);
+    private void seguirConLaCamara(float delta) {
+        float mitadAncho = Constantes.ANCHO_VISTA / 2f;
+        float mitadAlto = Constantes.ALTO_VISTA / 2f;
+
+        float objetivoX = (jugador1.getCentroX() + jugador2.getCentroX()) / 2f;
+        float objetivoY = (jugador1.getCentroY() + jugador2.getCentroY()) / 2f;
+        objetivoX = MathUtils.clamp(objetivoX, mitadAncho,
+            Math.max(mitadAncho, mapa.getAncho() - mitadAncho));
+        objetivoY = MathUtils.clamp(objetivoY, mitadAlto,
+            Math.max(mitadAlto, mapa.getAlto() - mitadAlto));
+
+        float suavizado = Math.min(1f, delta * Constantes.SUAVIZADO_CAMARA);
+        camaraMundo.position.x = MathUtils.lerp(camaraMundo.position.x, objetivoX, suavizado);
+        camaraMundo.position.y = MathUtils.lerp(camaraMundo.position.y, objetivoY, suavizado);
+    }
+
+    private void dibujar() {
+        ScreenUtils.clear(0.05f, 0.04f, 0.07f, 1f);
+
+        vistaMundo.apply();
+        camaraMundo.update();
+
+        renderizadorMapa.setView(camaraMundo);
+        renderizadorMapa.render(mapa.getCapasVisibles());
+
+        SpriteBatch batch = juego.getBatch();
+        batch.setProjectionMatrix(camaraMundo.combined);
+        batch.begin();
+        jugador1.dibujar(batch);
+        jugador2.dibujar(batch);
+        batch.end();
     }
 
     @Override
-    public void dibujar(SpriteBatch batch) {
-        TextureRegion cuadro = enMovimiento
-            ? recursos.caminata(numero, direccion.ordinal()).getKeyFrame(tiempoAnimacion)
-            : recursos.reposo(numero, direccion.ordinal());
-
-        float x = getCentroX() - Constantes.TAM_TILE / 2f;
-        float y = hitbox.y - Constantes.DESFASE_HITBOX_Y;
-        batch.draw(cuadro, x, y, Constantes.TAM_TILE, Constantes.TAM_TILE);
-
-        if (objetoEnMano != ObjetoEnMano.NADA) {
-            batch.draw(recursos.objeto(objetoEnMano.getIndiceRegion()),
-                x + 10f, y + Constantes.TAM_TILE - 8f, 20f, 20f);
-        }
+    public void resize(int ancho, int alto) {
+        vistaMundo.update(ancho, alto, false);
     }
 
-    public Rectangle getZonaInteraccion() {
-        return zonaInteraccion;
-    }
-
-    public ObjetoEnMano getObjetoEnMano() {
-        return objetoEnMano;
-    }
-
-    public void setObjetoEnMano(ObjetoEnMano objetoEnMano) {
-        this.objetoEnMano = objetoEnMano;
-    }
-
-    public boolean tieneLasManosLibres() {
-        return objetoEnMano == ObjetoEnMano.NADA;
+    @Override
+    public void dispose() {
+        renderizadorMapa.dispose();
     }
 }
