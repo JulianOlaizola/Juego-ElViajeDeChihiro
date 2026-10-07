@@ -10,9 +10,11 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import juego.chihiro.Main;
+import juego.chihiro.audio.AdministradorAudio;
 import juego.chihiro.entidades.Jugador;
 import juego.chihiro.entradas.Accion;
 import juego.chihiro.entradas.ControladorEntradas;
+import juego.chihiro.mundo.GestorInteracciones;
 import juego.chihiro.mundo.GestorPedidos;
 import juego.chihiro.mundo.MapaCasaBanos;
 import juego.chihiro.utiles.Constantes;
@@ -23,6 +25,7 @@ public class PantallaJuego extends ScreenAdapter {
     private final Main juego;
     private final Recursos recursos;
     private final ControladorEntradas entradas;
+    private final AdministradorAudio audio;
 
     private final OrthographicCamera camaraMundo = new OrthographicCamera();
     private final Viewport vistaMundo;
@@ -32,6 +35,7 @@ public class PantallaJuego extends ScreenAdapter {
     private final Jugador jugador1;
     private final Jugador jugador2;
     private final GestorPedidos gestorPedidos;
+    private final GestorInteracciones gestorInteracciones;
     private final DepuradorColisiones depurador = new DepuradorColisiones();
 
     private boolean mostrarDepuracion;
@@ -40,6 +44,7 @@ public class PantallaJuego extends ScreenAdapter {
         this.juego = juego;
         this.recursos = juego.getRecursos();
         this.entradas = juego.getEntradas();
+        this.audio = juego.getAudio();
 
         vistaMundo = new FitViewport(Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA, camaraMundo);
 
@@ -48,11 +53,12 @@ public class PantallaJuego extends ScreenAdapter {
         renderizadorMapa = new OrthogonalTiledMapRenderer(mapa.getMapa(), 1f, juego.getBatch());
 
         jugador1 = new Jugador(1, mapa.getAparicionJugador1().x, mapa.getAparicionJugador1().y,
-            recursos, entradas, mapa);
+                               recursos, entradas, mapa);
         jugador2 = new Jugador(2, mapa.getAparicionJugador2().x, mapa.getAparicionJugador2().y,
-            recursos, entradas, mapa);
+                               recursos, entradas, mapa);
 
         gestorPedidos = new GestorPedidos(mapa, recursos);
+        gestorInteracciones = new GestorInteracciones(mapa, gestorPedidos, audio);
 
         camaraMundo.position.set(jugador1.getCentroX(), jugador1.getCentroY(), 0f);
     }
@@ -72,6 +78,14 @@ public class PantallaJuego extends ScreenAdapter {
         jugador1.actualizar(delta);
         jugador2.actualizar(delta);
         gestorPedidos.actualizar(delta);
+        gestorInteracciones.actualizar(delta);
+
+        if (entradas.consumir(Accion.INTERACTUAR_JUGADOR_1)) {
+            gestorInteracciones.interactuar(jugador1);
+        }
+        if (entradas.consumir(Accion.INTERACTUAR_JUGADOR_2)) {
+            gestorInteracciones.interactuar(jugador2);
+        }
 
         seguirConLaCamara(delta);
 
@@ -85,9 +99,9 @@ public class PantallaJuego extends ScreenAdapter {
         float objetivoX = (jugador1.getCentroX() + jugador2.getCentroX()) / 2f;
         float objetivoY = (jugador1.getCentroY() + jugador2.getCentroY()) / 2f;
         objetivoX = MathUtils.clamp(objetivoX, mitadAncho,
-            Math.max(mitadAncho, mapa.getAncho() - mitadAncho));
+                                    Math.max(mitadAncho, mapa.getAncho() - mitadAncho));
         objetivoY = MathUtils.clamp(objetivoY, mitadAlto,
-            Math.max(mitadAlto, mapa.getAlto() - mitadAlto));
+                                    Math.max(mitadAlto, mapa.getAlto() - mitadAlto));
 
         float suavizado = Math.min(1f, delta * Constantes.SUAVIZADO_CAMARA);
         camaraMundo.position.x = MathUtils.lerp(camaraMundo.position.x, objetivoX, suavizado);

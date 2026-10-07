@@ -52,7 +52,9 @@ public final class Constantes {
     public static final float ESPERA_PRIMER_PEDIDO = 2f;
     public static final float ESPERA_ENTRE_PEDIDOS = 6f;
     public static final float SOLAPE_ESPIRITU_EN_TINA = 8f;
+    public static final float TIEMPO_CALENTAR_CALDERA = 3f;
     public static final int PUNTOS_POR_PEDIDO = 100;
+    public static final float DURACION_MENSAJE = 2.5f;
 
     public static final String ARCHIVO_PREFERENCIAS = "chihiro-preferencias";
     public static final float VOLUMEN_MUSICA_INICIAL = 0.55f;
