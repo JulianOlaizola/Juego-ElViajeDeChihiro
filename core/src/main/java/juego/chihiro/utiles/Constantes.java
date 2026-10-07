@@ -47,6 +47,9 @@ public final class Constantes {
 
     public static final float SUAVIZADO_CAMARA = 5f;
 
+    public static final float DURACION_NIVEL = 180f;
+    public static final int PEDIDOS_PARA_GANAR = 5;
+    public static final int FALLOS_PARA_PERDER = 3;
     public static final float TIEMPO_PEDIDO = 45f;
     public static final int MAX_PEDIDOS_ACTIVOS = 2;
     public static final float ESPERA_PRIMER_PEDIDO = 2f;

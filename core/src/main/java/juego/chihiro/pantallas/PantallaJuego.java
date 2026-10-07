@@ -14,6 +14,7 @@ import juego.chihiro.audio.AdministradorAudio;
 import juego.chihiro.entidades.Jugador;
 import juego.chihiro.entradas.Accion;
 import juego.chihiro.entradas.ControladorEntradas;
+import juego.chihiro.hud.Hud;
 import juego.chihiro.mundo.GestorInteracciones;
 import juego.chihiro.mundo.GestorPedidos;
 import juego.chihiro.mundo.MapaCasaBanos;
@@ -29,6 +30,8 @@ public class PantallaJuego extends ScreenAdapter {
 
     private final OrthographicCamera camaraMundo = new OrthographicCamera();
     private final Viewport vistaMundo;
+    private final OrthographicCamera camaraHud = new OrthographicCamera();
+    private final Viewport vistaHud;
 
     private final MapaCasaBanos mapa;
     private final OrthogonalTiledMapRenderer renderizadorMapa;
@@ -36,8 +39,10 @@ public class PantallaJuego extends ScreenAdapter {
     private final Jugador jugador2;
     private final GestorPedidos gestorPedidos;
     private final GestorInteracciones gestorInteracciones;
+    private final Hud hud;
     private final DepuradorColisiones depurador = new DepuradorColisiones();
 
+    private float tiempoRestante = Constantes.DURACION_NIVEL;
     private boolean mostrarDepuracion;
 
     public PantallaJuego(Main juego) {
@@ -47,6 +52,7 @@ public class PantallaJuego extends ScreenAdapter {
         this.audio = juego.getAudio();
 
         vistaMundo = new FitViewport(Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA, camaraMundo);
+        vistaHud = new FitViewport(Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA, camaraHud);
 
         mapa = new MapaCasaBanos(juego.getAssets());
 
@@ -59,6 +65,7 @@ public class PantallaJuego extends ScreenAdapter {
 
         gestorPedidos = new GestorPedidos(mapa, recursos);
         gestorInteracciones = new GestorInteracciones(mapa, gestorPedidos, audio);
+        hud = new Hud(recursos, audio, vistaHud, camaraHud);
 
         camaraMundo.position.set(jugador1.getCentroX(), jugador1.getCentroY(), 0f);
     }
@@ -88,6 +95,8 @@ public class PantallaJuego extends ScreenAdapter {
         }
 
         seguirConLaCamara(delta);
+
+        tiempoRestante -= delta;
 
         entradas.limpiarAcciones();
     }
@@ -128,11 +137,14 @@ public class PantallaJuego extends ScreenAdapter {
         if (mostrarDepuracion) {
             depurador.dibujar(camaraMundo, mapa, jugador1, jugador2);
         }
+
+        hud.dibujar(batch, tiempoRestante, gestorPedidos, gestorInteracciones, jugador1, jugador2);
     }
 
     @Override
     public void resize(int ancho, int alto) {
         vistaMundo.update(ancho, alto, false);
+        vistaHud.update(ancho, alto, true);
     }
 
     @Override
