@@ -13,6 +13,7 @@ import juego.chihiro.Main;
 import juego.chihiro.entidades.Jugador;
 import juego.chihiro.entradas.Accion;
 import juego.chihiro.entradas.ControladorEntradas;
+import juego.chihiro.mundo.GestorPedidos;
 import juego.chihiro.mundo.MapaCasaBanos;
 import juego.chihiro.utiles.Constantes;
 import juego.chihiro.utiles.DepuradorColisiones;
@@ -30,6 +31,7 @@ public class PantallaJuego extends ScreenAdapter {
     private final OrthogonalTiledMapRenderer renderizadorMapa;
     private final Jugador jugador1;
     private final Jugador jugador2;
+    private final GestorPedidos gestorPedidos;
     private final DepuradorColisiones depurador = new DepuradorColisiones();
 
     private boolean mostrarDepuracion;
@@ -46,9 +48,11 @@ public class PantallaJuego extends ScreenAdapter {
         renderizadorMapa = new OrthogonalTiledMapRenderer(mapa.getMapa(), 1f, juego.getBatch());
 
         jugador1 = new Jugador(1, mapa.getAparicionJugador1().x, mapa.getAparicionJugador1().y,
-                               recursos, entradas, mapa);
+            recursos, entradas, mapa);
         jugador2 = new Jugador(2, mapa.getAparicionJugador2().x, mapa.getAparicionJugador2().y,
-                               recursos, entradas, mapa);
+            recursos, entradas, mapa);
+
+        gestorPedidos = new GestorPedidos(mapa, recursos);
 
         camaraMundo.position.set(jugador1.getCentroX(), jugador1.getCentroY(), 0f);
     }
@@ -67,6 +71,7 @@ public class PantallaJuego extends ScreenAdapter {
 
         jugador1.actualizar(delta);
         jugador2.actualizar(delta);
+        gestorPedidos.actualizar(delta);
 
         seguirConLaCamara(delta);
 
@@ -80,9 +85,9 @@ public class PantallaJuego extends ScreenAdapter {
         float objetivoX = (jugador1.getCentroX() + jugador2.getCentroX()) / 2f;
         float objetivoY = (jugador1.getCentroY() + jugador2.getCentroY()) / 2f;
         objetivoX = MathUtils.clamp(objetivoX, mitadAncho,
-                                    Math.max(mitadAncho, mapa.getAncho() - mitadAncho));
+            Math.max(mitadAncho, mapa.getAncho() - mitadAncho));
         objetivoY = MathUtils.clamp(objetivoY, mitadAlto,
-                                    Math.max(mitadAlto, mapa.getAlto() - mitadAlto));
+            Math.max(mitadAlto, mapa.getAlto() - mitadAlto));
 
         float suavizado = Math.min(1f, delta * Constantes.SUAVIZADO_CAMARA);
         camaraMundo.position.x = MathUtils.lerp(camaraMundo.position.x, objetivoX, suavizado);
@@ -101,6 +106,7 @@ public class PantallaJuego extends ScreenAdapter {
         SpriteBatch batch = juego.getBatch();
         batch.setProjectionMatrix(camaraMundo.combined);
         batch.begin();
+        gestorPedidos.dibujar(batch);
         jugador1.dibujar(batch);
         jugador2.dibujar(batch);
         batch.end();

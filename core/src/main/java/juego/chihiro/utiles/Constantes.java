@@ -47,6 +47,13 @@ public final class Constantes {
 
     public static final float SUAVIZADO_CAMARA = 5f;
 
+    public static final float TIEMPO_PEDIDO = 45f;
+    public static final int MAX_PEDIDOS_ACTIVOS = 2;
+    public static final float ESPERA_PRIMER_PEDIDO = 2f;
+    public static final float ESPERA_ENTRE_PEDIDOS = 6f;
+    public static final float SOLAPE_ESPIRITU_EN_TINA = 8f;
+    public static final int PUNTOS_POR_PEDIDO = 100;
+
     public static final String ARCHIVO_PREFERENCIAS = "chihiro-preferencias";
     public static final float VOLUMEN_MUSICA_INICIAL = 0.55f;
     public static final float VOLUMEN_EFECTOS_INICIAL = 0.8f;
