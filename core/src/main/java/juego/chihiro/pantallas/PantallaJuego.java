@@ -1,10 +1,12 @@
 package juego.chihiro.pantallas;
 
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -42,7 +44,9 @@ public class PantallaJuego extends ScreenAdapter {
     private final Hud hud;
     private final DepuradorColisiones depurador = new DepuradorColisiones();
 
+    private EstadoPartida estado = EstadoPartida.JUGANDO;
     private float tiempoRestante = Constantes.DURACION_NIVEL;
+    private boolean gano;
     private boolean mostrarDepuracion;
 
     public PantallaJuego(Main juego) {
@@ -72,14 +76,38 @@ public class PantallaJuego extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
-        actualizar(delta);
+        if (!actualizar(delta)) {
+            return;
+        }
         dibujar();
     }
 
-    private void actualizar(float delta) {
+    private boolean actualizar(float delta) {
         juego.atenderControlesDeAudio();
         if (entradas.consumir(Accion.DEPURAR)) {
             mostrarDepuracion = !mostrarDepuracion;
+        }
+
+        if (estado == EstadoPartida.TERMINADA) {
+            if (entradas.consumir(Accion.CONFIRMAR)) {
+                juego.cambiarPantalla(new PantallaMenu(juego));
+                return false;
+            }
+            entradas.limpiarAcciones();
+            return true;
+        }
+
+        if (entradas.consumir(Accion.PAUSA)) {
+            estado = (estado == EstadoPartida.PAUSA) ? EstadoPartida.JUGANDO : EstadoPartida.PAUSA;
+        }
+
+        if (estado == EstadoPartida.PAUSA) {
+            if (entradas.consumir(Accion.CONFIRMAR)) {
+                juego.cambiarPantalla(new PantallaMenu(juego));
+                return false;
+            }
+            entradas.limpiarAcciones();
+            return true;
         }
 
         jugador1.actualizar(delta);
@@ -97,8 +125,28 @@ public class PantallaJuego extends ScreenAdapter {
         seguirConLaCamara(delta);
 
         tiempoRestante -= delta;
+        revisarFinDePartida();
 
         entradas.limpiarAcciones();
+        return true;
+    }
+
+    private void revisarFinDePartida() {
+        if (gestorPedidos.getPedidosCompletados() >= Constantes.PEDIDOS_PARA_GANAR) {
+            terminar(true);
+        } else if (gestorPedidos.getPedidosFallidos() >= Constantes.FALLOS_PARA_PERDER
+                   || tiempoRestante <= 0f) {
+            terminar(false);
+        }
+    }
+
+    private void terminar(boolean ganoLaPartida) {
+        gano = ganoLaPartida;
+        estado = EstadoPartida.TERMINADA;
+        tiempoRestante = Math.max(0f, tiempoRestante);
+        audio.reproducir(ganoLaPartida
+            ? AdministradorAudio.Efecto.PEDIDO_COMPLETO
+            : AdministradorAudio.Efecto.ERROR);
     }
 
     private void seguirConLaCamara(float delta) {
@@ -139,12 +187,43 @@ public class PantallaJuego extends ScreenAdapter {
         }
 
         hud.dibujar(batch, tiempoRestante, gestorPedidos, gestorInteracciones, jugador1, jugador2);
+
+        if (estado == EstadoPartida.PAUSA) {
+            dibujarVelo("PAUSA", "P o ESC para seguir   -   ENTER para volver al menú");
+        } else if (estado == EstadoPartida.TERMINADA) {
+            dibujarVelo(gano ? "¡Turno completado!" : "Se cerró la casa de baños",
+                        "Puntaje " + gestorPedidos.getPuntaje() + "   -   ENTER para volver al menú");
+        }
+    }
+
+    private void dibujarVelo(String titulo, String detalle) {
+        SpriteBatch batch = juego.getBatch();
+        vistaHud.apply();
+        batch.setProjectionMatrix(camaraHud.combined);
+        batch.begin();
+
+        batch.setColor(0f, 0f, 0f, 0.62f);
+        batch.draw(recursos.getPixel(), 0f, 0f, Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA);
+        batch.setColor(Color.WHITE);
+
+        recursos.getFuenteGrande().draw(batch, titulo, 0f, Constantes.ALTO_VISTA / 2f + 40f,
+                                        Constantes.ANCHO_VISTA, Align.center, false);
+        recursos.getFuenteMedia().draw(batch, detalle, 0f, Constantes.ALTO_VISTA / 2f - 20f,
+                                       Constantes.ANCHO_VISTA, Align.center, false);
+        batch.end();
     }
 
     @Override
     public void resize(int ancho, int alto) {
         vistaMundo.update(ancho, alto, false);
         vistaHud.update(ancho, alto, true);
+    }
+
+    @Override
+    public void pause() {
+        if (estado == EstadoPartida.JUGANDO) {
+            estado = EstadoPartida.PAUSA;
+        }
     }
 
     @Override
