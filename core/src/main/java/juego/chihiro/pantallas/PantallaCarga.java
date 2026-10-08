@@ -57,8 +57,8 @@ public class PantallaCarga extends ScreenAdapter {
         boolean termino = juego.getAssets().update();
 
         progresoMostrado = MathUtils.lerp(progresoMostrado,
-            juego.getAssets().getProgress(),
-            Math.min(1f, delta * 8f));
+                                          juego.getAssets().getProgress(),
+                                          Math.min(1f, delta * 8f));
 
         ScreenUtils.clear(0.07f, 0.05f, 0.09f, 1f);
         vista.apply();
@@ -69,7 +69,7 @@ public class PantallaCarga extends ScreenAdapter {
 
         if (termino && progresoMostrado > 0.99f) {
             juego.prepararRecursos();
-            juego.cambiarPantalla(new PantallaJuego(juego));
+            juego.cambiarPantalla(new PantallaMenu(juego));
         }
     }
 
