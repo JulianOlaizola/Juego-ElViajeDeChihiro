@@ -4,6 +4,7 @@ public final class Constantes {
     private Constantes() {
     }
 
+    public static final String TITULO = "El viaje de Chihiro: Caos en la Casa de Baños";
     public static final float ANCHO_VISTA = 960f;
     public static final float ALTO_VISTA = 540f;
 
