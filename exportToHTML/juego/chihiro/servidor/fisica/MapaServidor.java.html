@@ -1,0 +1,142 @@
+<html>
+<head>
+<title>MapaServidor.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #6aab73;}
+.s4 { color: #2aacb8;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+MapaServidor.java</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span><span class="s1">juego</span><span class="s2">.</span><span class="s1">chihiro</span><span class="s2">.</span><span class="s1">servidor</span><span class="s2">.</span><span class="s1">fisica</span><span class="s2">;</span>
+
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">Gdx</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">files</span><span class="s2">.</span><span class="s1">FileHandle</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">math</span><span class="s2">.</span><span class="s1">Rectangle</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">math</span><span class="s2">.</span><span class="s1">Vector2</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">utils</span><span class="s2">.</span><span class="s1">Array</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">utils</span><span class="s2">.</span><span class="s1">GdxRuntimeException</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">utils</span><span class="s2">.</span><span class="s1">SerializationException</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">utils</span><span class="s2">.</span><span class="s1">XmlReader</span><span class="s2">;</span>
+
+<span class="s0">import </span><span class="s1">juego</span><span class="s2">.</span><span class="s1">chihiro</span><span class="s2">.</span><span class="s1">mundo</span><span class="s2">.</span><span class="s1">TipoInteractivo</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">juego</span><span class="s2">.</span><span class="s1">chihiro</span><span class="s2">.</span><span class="s1">utiles</span><span class="s2">.</span><span class="s1">Constantes</span><span class="s2">;</span>
+
+<span class="s0">public class </span><span class="s1">MapaServidor </span><span class="s2">{</span>
+
+    <span class="s0">private final </span><span class="s1">Array</span><span class="s2">&lt;</span><span class="s1">Rectangle</span><span class="s2">&gt; </span><span class="s1">colisiones </span><span class="s2">= </span><span class="s0">new </span><span class="s1">Array</span><span class="s2">&lt;&gt;();</span>
+    <span class="s0">private final </span><span class="s1">Array</span><span class="s2">&lt;</span><span class="s1">ObjetoServidor</span><span class="s2">&gt; </span><span class="s1">interactivos </span><span class="s2">= </span><span class="s0">new </span><span class="s1">Array</span><span class="s2">&lt;&gt;();</span>
+    <span class="s0">private final </span><span class="s1">Vector2 aparicionJugador1 </span><span class="s2">= </span><span class="s0">new </span><span class="s1">Vector2</span><span class="s2">();</span>
+    <span class="s0">private final </span><span class="s1">Vector2 aparicionJugador2 </span><span class="s2">= </span><span class="s0">new </span><span class="s1">Vector2</span><span class="s2">();</span>
+    <span class="s0">private float </span><span class="s1">ancho</span><span class="s2">;</span>
+    <span class="s0">private float </span><span class="s1">alto</span><span class="s2">;</span>
+
+    <span class="s0">public </span><span class="s1">MapaServidor</span><span class="s2">(</span><span class="s1">String ruta</span><span class="s2">) </span><span class="s0">throws </span><span class="s1">MapaInvalidoException </span><span class="s2">{</span>
+        <span class="s1">FileHandle archivo </span><span class="s2">= </span><span class="s1">Gdx</span><span class="s2">.</span><span class="s1">files</span><span class="s2">.</span><span class="s1">internal</span><span class="s2">(</span><span class="s1">ruta</span><span class="s2">);</span>
+        <span class="s0">if </span><span class="s2">(!</span><span class="s1">archivo</span><span class="s2">.</span><span class="s1">exists</span><span class="s2">()) {</span>
+            <span class="s0">throw new </span><span class="s1">MapaInvalidoException</span><span class="s2">(</span><span class="s3">&quot;No se encontró el mapa &quot; </span><span class="s2">+ </span><span class="s1">ruta</span><span class="s2">);</span>
+        <span class="s2">}</span>
+        <span class="s1">XmlReader</span><span class="s2">.</span><span class="s1">Element raiz</span><span class="s2">;</span>
+        <span class="s0">try </span><span class="s2">{</span>
+            <span class="s1">raiz </span><span class="s2">= </span><span class="s0">new </span><span class="s1">XmlReader</span><span class="s2">().</span><span class="s1">parse</span><span class="s2">(</span><span class="s1">archivo</span><span class="s2">);</span>
+        <span class="s2">} </span><span class="s0">catch </span><span class="s2">(</span><span class="s1">SerializationException </span><span class="s2">| </span><span class="s1">GdxRuntimeException e</span><span class="s2">) {</span>
+            <span class="s0">throw new </span><span class="s1">MapaInvalidoException</span><span class="s2">(</span><span class="s3">&quot;No se pudo leer el mapa &quot; </span><span class="s2">+ </span><span class="s1">ruta</span><span class="s2">, </span><span class="s1">e</span><span class="s2">);</span>
+        <span class="s2">}</span>
+        <span class="s0">int </span><span class="s1">columnas </span><span class="s2">= </span><span class="s1">raiz</span><span class="s2">.</span><span class="s1">getIntAttribute</span><span class="s2">(</span><span class="s3">&quot;width&quot;</span><span class="s2">, </span><span class="s4">0</span><span class="s2">);</span>
+        <span class="s0">int </span><span class="s1">filas </span><span class="s2">= </span><span class="s1">raiz</span><span class="s2">.</span><span class="s1">getIntAttribute</span><span class="s2">(</span><span class="s3">&quot;height&quot;</span><span class="s2">, </span><span class="s4">0</span><span class="s2">);</span>
+        <span class="s0">int </span><span class="s1">anchoTile </span><span class="s2">= </span><span class="s1">raiz</span><span class="s2">.</span><span class="s1">getIntAttribute</span><span class="s2">(</span><span class="s3">&quot;tilewidth&quot;</span><span class="s2">, </span><span class="s1">Constantes</span><span class="s2">.</span><span class="s1">TAM_TILE</span><span class="s2">);</span>
+        <span class="s0">int </span><span class="s1">altoTile </span><span class="s2">= </span><span class="s1">raiz</span><span class="s2">.</span><span class="s1">getIntAttribute</span><span class="s2">(</span><span class="s3">&quot;tileheight&quot;</span><span class="s2">, </span><span class="s1">Constantes</span><span class="s2">.</span><span class="s1">TAM_TILE</span><span class="s2">);</span>
+        <span class="s0">if </span><span class="s2">(</span><span class="s1">columnas </span><span class="s2">&lt;= </span><span class="s4">0 </span><span class="s2">|| </span><span class="s1">filas </span><span class="s2">&lt;= </span><span class="s4">0</span><span class="s2">) {</span>
+            <span class="s0">throw new </span><span class="s1">MapaInvalidoException</span><span class="s2">(</span><span class="s3">&quot;El mapa no tiene tamaño válido&quot;</span><span class="s2">);</span>
+        <span class="s2">}</span>
+        <span class="s1">ancho </span><span class="s2">= </span><span class="s1">columnas </span><span class="s2">* </span><span class="s1">anchoTile</span><span class="s2">;</span>
+        <span class="s1">alto </span><span class="s2">= </span><span class="s1">filas </span><span class="s2">* </span><span class="s1">altoTile</span><span class="s2">;</span>
+
+        <span class="s0">for </span><span class="s2">(</span><span class="s1">XmlReader</span><span class="s2">.</span><span class="s1">Element grupo </span><span class="s2">: </span><span class="s1">raiz</span><span class="s2">.</span><span class="s1">getChildrenByName</span><span class="s2">(</span><span class="s3">&quot;objectgroup&quot;</span><span class="s2">)) {</span>
+            <span class="s1">String nombreCapa </span><span class="s2">= </span><span class="s1">grupo</span><span class="s2">.</span><span class="s1">getAttribute</span><span class="s2">(</span><span class="s3">&quot;name&quot;</span><span class="s2">, </span><span class="s3">&quot;&quot;</span><span class="s2">);</span>
+            <span class="s0">if </span><span class="s2">(</span><span class="s1">Constantes</span><span class="s2">.</span><span class="s1">CAPA_COLISIONES</span><span class="s2">.</span><span class="s1">equals</span><span class="s2">(</span><span class="s1">nombreCapa</span><span class="s2">)) {</span>
+                <span class="s1">leerColisiones</span><span class="s2">(</span><span class="s1">grupo</span><span class="s2">);</span>
+            <span class="s2">} </span><span class="s0">else if </span><span class="s2">(</span><span class="s1">Constantes</span><span class="s2">.</span><span class="s1">CAPA_INTERACTIVOS</span><span class="s2">.</span><span class="s1">equals</span><span class="s2">(</span><span class="s1">nombreCapa</span><span class="s2">)) {</span>
+                <span class="s1">leerInteractivos</span><span class="s2">(</span><span class="s1">grupo</span><span class="s2">);</span>
+            <span class="s2">}</span>
+        <span class="s2">}</span>
+        <span class="s0">if </span><span class="s2">(</span><span class="s1">colisiones</span><span class="s2">.</span><span class="s1">isEmpty</span><span class="s2">()) {</span>
+            <span class="s0">throw new </span><span class="s1">MapaInvalidoException</span><span class="s2">(</span><span class="s3">&quot;El mapa no tiene la capa de colisiones&quot;</span><span class="s2">);</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s0">private void </span><span class="s1">leerColisiones</span><span class="s2">(</span><span class="s1">XmlReader</span><span class="s2">.</span><span class="s1">Element grupo</span><span class="s2">) {</span>
+        <span class="s0">for </span><span class="s2">(</span><span class="s1">XmlReader</span><span class="s2">.</span><span class="s1">Element objeto </span><span class="s2">: </span><span class="s1">grupo</span><span class="s2">.</span><span class="s1">getChildrenByName</span><span class="s2">(</span><span class="s3">&quot;object&quot;</span><span class="s2">)) {</span>
+            <span class="s1">colisiones</span><span class="s2">.</span><span class="s1">add</span><span class="s2">(</span><span class="s1">rectangulo</span><span class="s2">(</span><span class="s1">objeto</span><span class="s2">));</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s0">private void </span><span class="s1">leerInteractivos</span><span class="s2">(</span><span class="s1">XmlReader</span><span class="s2">.</span><span class="s1">Element grupo</span><span class="s2">) {</span>
+        <span class="s0">for </span><span class="s2">(</span><span class="s1">XmlReader</span><span class="s2">.</span><span class="s1">Element objeto </span><span class="s2">: </span><span class="s1">grupo</span><span class="s2">.</span><span class="s1">getChildrenByName</span><span class="s2">(</span><span class="s3">&quot;object&quot;</span><span class="s2">)) {</span>
+            <span class="s1">TipoInteractivo tipo </span><span class="s2">= </span><span class="s1">TipoInteractivo</span><span class="s2">.</span><span class="s1">desdeClave</span><span class="s2">(</span><span class="s1">propiedad</span><span class="s2">(</span><span class="s1">objeto</span><span class="s2">, </span><span class="s1">Constantes</span><span class="s2">.</span><span class="s1">PROPIEDAD_TIPO</span><span class="s2">));</span>
+            <span class="s0">if </span><span class="s2">(</span><span class="s1">tipo </span><span class="s2">== </span><span class="s0">null</span><span class="s2">) {</span>
+                <span class="s0">continue</span><span class="s2">;</span>
+            <span class="s2">}</span>
+            <span class="s1">Rectangle area </span><span class="s2">= </span><span class="s1">rectangulo</span><span class="s2">(</span><span class="s1">objeto</span><span class="s2">);</span>
+            <span class="s0">if </span><span class="s2">(</span><span class="s1">tipo </span><span class="s2">== </span><span class="s1">TipoInteractivo</span><span class="s2">.</span><span class="s1">SPAWN_JUGADOR_1</span><span class="s2">) {</span>
+                <span class="s1">aparicionJugador1</span><span class="s2">.</span><span class="s1">set</span><span class="s2">(</span><span class="s1">area</span><span class="s2">.</span><span class="s1">x</span><span class="s2">, </span><span class="s1">area</span><span class="s2">.</span><span class="s1">y</span><span class="s2">);</span>
+            <span class="s2">} </span><span class="s0">else if </span><span class="s2">(</span><span class="s1">tipo </span><span class="s2">== </span><span class="s1">TipoInteractivo</span><span class="s2">.</span><span class="s1">SPAWN_JUGADOR_2</span><span class="s2">) {</span>
+                <span class="s1">aparicionJugador2</span><span class="s2">.</span><span class="s1">set</span><span class="s2">(</span><span class="s1">area</span><span class="s2">.</span><span class="s1">x</span><span class="s2">, </span><span class="s1">area</span><span class="s2">.</span><span class="s1">y</span><span class="s2">);</span>
+            <span class="s2">} </span><span class="s0">else </span><span class="s2">{</span>
+                <span class="s1">interactivos</span><span class="s2">.</span><span class="s1">add</span><span class="s2">(</span><span class="s0">new </span><span class="s1">ObjetoServidor</span><span class="s2">(</span><span class="s1">interactivos</span><span class="s2">.</span><span class="s1">size</span><span class="s2">, </span><span class="s1">objeto</span><span class="s2">.</span><span class="s1">getAttribute</span><span class="s2">(</span><span class="s3">&quot;name&quot;</span><span class="s2">, </span><span class="s3">&quot;&quot;</span><span class="s2">), </span><span class="s1">tipo</span><span class="s2">, </span><span class="s1">area</span><span class="s2">));</span>
+            <span class="s2">}</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s0">private </span><span class="s1">Rectangle rectangulo</span><span class="s2">(</span><span class="s1">XmlReader</span><span class="s2">.</span><span class="s1">Element objeto</span><span class="s2">) {</span>
+        <span class="s0">float </span><span class="s1">x </span><span class="s2">= </span><span class="s1">objeto</span><span class="s2">.</span><span class="s1">getFloatAttribute</span><span class="s2">(</span><span class="s3">&quot;x&quot;</span><span class="s2">, </span><span class="s4">0f</span><span class="s2">);</span>
+        <span class="s0">float </span><span class="s1">yTiled </span><span class="s2">= </span><span class="s1">objeto</span><span class="s2">.</span><span class="s1">getFloatAttribute</span><span class="s2">(</span><span class="s3">&quot;y&quot;</span><span class="s2">, </span><span class="s4">0f</span><span class="s2">);</span>
+        <span class="s0">float </span><span class="s1">anchoObjeto </span><span class="s2">= </span><span class="s1">objeto</span><span class="s2">.</span><span class="s1">getFloatAttribute</span><span class="s2">(</span><span class="s3">&quot;width&quot;</span><span class="s2">, </span><span class="s4">0f</span><span class="s2">);</span>
+        <span class="s0">float </span><span class="s1">altoObjeto </span><span class="s2">= </span><span class="s1">objeto</span><span class="s2">.</span><span class="s1">getFloatAttribute</span><span class="s2">(</span><span class="s3">&quot;height&quot;</span><span class="s2">, </span><span class="s4">0f</span><span class="s2">);</span>
+        <span class="s0">return new </span><span class="s1">Rectangle</span><span class="s2">(</span><span class="s1">x</span><span class="s2">, </span><span class="s1">alto </span><span class="s2">- </span><span class="s1">yTiled </span><span class="s2">- </span><span class="s1">altoObjeto</span><span class="s2">, </span><span class="s1">anchoObjeto</span><span class="s2">, </span><span class="s1">altoObjeto</span><span class="s2">);</span>
+    <span class="s2">}</span>
+
+    <span class="s0">private static </span><span class="s1">String propiedad</span><span class="s2">(</span><span class="s1">XmlReader</span><span class="s2">.</span><span class="s1">Element objeto</span><span class="s2">, </span><span class="s1">String nombre</span><span class="s2">) {</span>
+        <span class="s1">XmlReader</span><span class="s2">.</span><span class="s1">Element propiedades </span><span class="s2">= </span><span class="s1">objeto</span><span class="s2">.</span><span class="s1">getChildByName</span><span class="s2">(</span><span class="s3">&quot;properties&quot;</span><span class="s2">);</span>
+        <span class="s0">if </span><span class="s2">(</span><span class="s1">propiedades </span><span class="s2">== </span><span class="s0">null</span><span class="s2">) {</span>
+            <span class="s0">return </span><span class="s3">&quot;&quot;</span><span class="s2">;</span>
+        <span class="s2">}</span>
+        <span class="s0">for </span><span class="s2">(</span><span class="s1">XmlReader</span><span class="s2">.</span><span class="s1">Element propiedad </span><span class="s2">: </span><span class="s1">propiedades</span><span class="s2">.</span><span class="s1">getChildrenByName</span><span class="s2">(</span><span class="s3">&quot;property&quot;</span><span class="s2">)) {</span>
+            <span class="s0">if </span><span class="s2">(</span><span class="s1">nombre</span><span class="s2">.</span><span class="s1">equals</span><span class="s2">(</span><span class="s1">propiedad</span><span class="s2">.</span><span class="s1">getAttribute</span><span class="s2">(</span><span class="s3">&quot;name&quot;</span><span class="s2">, </span><span class="s3">&quot;&quot;</span><span class="s2">))) {</span>
+                <span class="s0">return </span><span class="s1">propiedad</span><span class="s2">.</span><span class="s1">getAttribute</span><span class="s2">(</span><span class="s3">&quot;value&quot;</span><span class="s2">, </span><span class="s3">&quot;&quot;</span><span class="s2">);</span>
+            <span class="s2">}</span>
+        <span class="s2">}</span>
+        <span class="s0">return </span><span class="s3">&quot;&quot;</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public </span><span class="s1">Array</span><span class="s2">&lt;</span><span class="s1">Rectangle</span><span class="s2">&gt; </span><span class="s1">getColisiones</span><span class="s2">() {</span>
+        <span class="s0">return </span><span class="s1">colisiones</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public </span><span class="s1">Array</span><span class="s2">&lt;</span><span class="s1">ObjetoServidor</span><span class="s2">&gt; </span><span class="s1">getInteractivos</span><span class="s2">() {</span>
+        <span class="s0">return </span><span class="s1">interactivos</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public </span><span class="s1">Vector2 getAparicion</span><span class="s2">(</span><span class="s0">int </span><span class="s1">numeroJugador</span><span class="s2">) {</span>
+        <span class="s0">return </span><span class="s1">numeroJugador </span><span class="s2">== </span><span class="s4">1 </span><span class="s2">? </span><span class="s1">aparicionJugador1 </span><span class="s2">: </span><span class="s1">aparicionJugador2</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public float </span><span class="s1">getAncho</span><span class="s2">() {</span>
+        <span class="s0">return </span><span class="s1">ancho</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public float </span><span class="s1">getAlto</span><span class="s2">() {</span>
+        <span class="s0">return </span><span class="s1">alto</span><span class="s2">;</span>
+    <span class="s2">}</span>
+<span class="s2">}</span>
+</pre>
+</body>
+</html>

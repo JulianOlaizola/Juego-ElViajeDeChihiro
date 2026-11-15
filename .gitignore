@@ -12,6 +12,7 @@ gradle-app.setting
 /ios-moe/build/
 /headless/build/
 /server/build/
+/servidor/build/
 /shared/build/
 
 ## Java:
@@ -76,6 +77,7 @@ www-test/
 /ios-moe/bin/
 /headless/bin/
 /server/bin/
+/servidor/bin/
 /shared/bin/
 *.tmp
 *.bak

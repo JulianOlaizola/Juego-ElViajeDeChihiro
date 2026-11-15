@@ -8,6 +8,10 @@ java {
 
 sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
 
+tasks.withType(JavaCompile).configureEach {
+  options.encoding = 'UTF-8'
+}
+
 application {
   mainClass = 'juego.chihiro.servidor.ServidorLauncher'
 }
@@ -16,6 +20,8 @@ dependencies {
   implementation project(':core')
   implementation "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
   implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+  implementation "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
+  implementation "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
 }
 
 tasks.named('run', JavaExec) {
