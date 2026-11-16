@@ -37,6 +37,11 @@ public class PantallaMenu extends ScreenAdapter {
     }
 
     @Override
+    public void show() {
+        juego.cerrarSesion();
+    }
+
+    @Override
     public void render(float delta) {
         if (!actualizar()) {
             return;

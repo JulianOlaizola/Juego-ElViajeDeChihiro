@@ -4,7 +4,13 @@ public enum TipoMensaje {
     PING,
     PONG,
     DESCUBRIR,
-    ANUNCIO;
+    ANUNCIO,
+    CONECTAR,
+    BIENVENIDA,
+    RECHAZO,
+    ENTRADA,
+    ESTADO,
+    DESCONECTAR;
 
     public static TipoMensaje desdeTexto(String texto) {
         for (TipoMensaje tipo : values()) {

@@ -13,6 +13,7 @@ import juego.chihiro.audio.AdministradorAudio;
 import juego.chihiro.entradas.Accion;
 import juego.chihiro.entradas.ControladorEntradas;
 import juego.chihiro.pantallas.PantallaCarga;
+import juego.chihiro.red.SesionCliente;
 import juego.chihiro.utiles.Recursos;
 
 public class Main extends Game {
@@ -22,6 +23,7 @@ public class Main extends Game {
     private AdministradorAudio audio;
     private Recursos recursos;
     private String ultimaDireccion = "127.0.0.1";
+    private SesionCliente sesion;
 
     @Override
     public void create() {
@@ -83,6 +85,22 @@ public class Main extends Game {
         return recursos;
     }
 
+    public void iniciarSesion(SesionCliente nueva) {
+        cerrarSesion();
+        sesion = nueva;
+    }
+
+    public SesionCliente getSesion() {
+        return sesion;
+    }
+
+    public void cerrarSesion() {
+        if (sesion != null) {
+            sesion.cerrar();
+            sesion = null;
+        }
+    }
+
     public String getUltimaDireccion() {
         return ultimaDireccion;
     }
@@ -93,6 +111,7 @@ public class Main extends Game {
 
     @Override
     public void dispose() {
+        cerrarSesion();
         super.dispose();
         if (getScreen() != null) {
             getScreen().dispose();
