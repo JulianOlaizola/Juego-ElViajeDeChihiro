@@ -31,8 +31,16 @@ public class PantallaSala extends PantallaBase {
             juego.cambiarPantalla(new PantallaMensaje(juego, "Se cortó la conexión", sesion.getMotivo()));
             return;
         }
-        if (entradas.consumir(Accion.CONFIRMAR) && sesion.getInstantanea().getFase() == FasePartida.SALA) {
-            sesion.alternarListo();
+        if (sesion.getInstantanea().getFase() == FasePartida.SALA) {
+            sesion.setEjes(0f, 0f);
+            if (entradas.consumir(Accion.CONFIRMAR)) {
+                sesion.alternarListo();
+            }
+        } else {
+            sesion.setEjes(entradas.ejeHorizontalCombinado(), entradas.ejeVerticalCombinado());
+            if (entradas.consumirInteraccion()) {
+                sesion.pulsarInteraccion();
+            }
         }
         entradas.limpiarAcciones();
         dibujar();
@@ -70,6 +78,9 @@ public class PantallaSala extends PantallaBase {
             linea(batch, recursos.getFuenteChica(), "La partida empieza cuando los dos jugadores están listos.", 130f, Color.LIGHT_GRAY);
         } else {
             linea(batch, recursos.getFuenteMedia(), "¡La partida comenzó en el servidor!", 170f, Color.LIME);
+            linea(batch, recursos.getFuenteChica(),
+                "Movete con WASD o flechas e interactuá con E: el resultado aparece en la consola del servidor.",
+                130f, Color.LIGHT_GRAY);
         }
         pie(batch, "ESC para salir de la sala");
         batch.end();

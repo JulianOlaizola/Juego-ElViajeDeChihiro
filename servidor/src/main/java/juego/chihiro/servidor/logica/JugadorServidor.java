@@ -1,5 +1,6 @@
 package juego.chihiro.servidor.logica;
 
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 
@@ -11,7 +12,9 @@ import juego.chihiro.utiles.Constantes;
 public class JugadorServidor {
 
     private final int numero;
+    private final Rectangle zonaInteraccion = new Rectangle();
     private Body cuerpo;
+    private int ultimoContadorInteraccion;
     private Direccion direccion = Direccion.ABAJO;
     private ObjetoEnMano objetoEnMano = ObjetoEnMano.NADA;
     private float ejeX;
@@ -23,7 +26,6 @@ public class JugadorServidor {
     }
 
     public void ubicar(MundoFisico mundo, Vector2 aparicion) {
-        mundo.destruir(cuerpo);
         float centroX = aparicion.x + Constantes.TAM_TILE / 2f;
         float centroY = aparicion.y + Constantes.DESFASE_HITBOX_Y + Constantes.ALTO_HITBOX / 2f;
         cuerpo = mundo.crearCuerpoJugador(centroX, centroY, this);
@@ -61,6 +63,29 @@ public class JugadorServidor {
         if (cuerpo != null) {
             cuerpo.setLinearVelocity(0f, 0f);
         }
+    }
+
+    public int interaccionesPendientes(int contadorRecibido, int maximo) {
+        int nuevas = contadorRecibido - ultimoContadorInteraccion;
+        ultimoContadorInteraccion = contadorRecibido;
+        if (nuevas < 0) {
+            return 0;
+        }
+        return Math.min(nuevas, maximo);
+    }
+
+    public void sincronizarContador(int contadorRecibido) {
+        ultimoContadorInteraccion = contadorRecibido;
+    }
+
+    public Rectangle getZonaInteraccion() {
+        float ancho = Constantes.ANCHO_HITBOX + Constantes.MARGEN_ZONA_INTERACCION;
+        float alto = Constantes.ALTO_HITBOX + Constantes.MARGEN_ZONA_INTERACCION;
+        return zonaInteraccion.set(
+            getCentroX() - ancho / 2f + direccion.getX() * Constantes.ALCANCE_INTERACCION,
+            getCentroY() - alto / 2f + direccion.getY() * Constantes.ALCANCE_INTERACCION,
+            ancho,
+            alto);
     }
 
     public float getCentroX() {

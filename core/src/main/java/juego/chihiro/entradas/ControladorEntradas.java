@@ -169,6 +169,20 @@ public class ControladorEntradas extends InputAdapter {
         return (arriba ? 1f : 0f) - (abajo ? 1f : 0f);
     }
 
+    public float ejeHorizontalCombinado() {
+        return Math.max(-1f, Math.min(1f, ejeHorizontal(1) + ejeHorizontal(2)));
+    }
+
+    public float ejeVerticalCombinado() {
+        return Math.max(-1f, Math.min(1f, ejeVertical(1) + ejeVertical(2)));
+    }
+
+    public boolean consumirInteraccion() {
+        boolean primero = consumir(Accion.INTERACTUAR_JUGADOR_1);
+        boolean segundo = consumir(Accion.INTERACTUAR_JUGADOR_2);
+        return primero || segundo;
+    }
+
     public boolean consumir(Accion accion) {
         if (acciones[accion.ordinal()]) {
             acciones[accion.ordinal()] = false;

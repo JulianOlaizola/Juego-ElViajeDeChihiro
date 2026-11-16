@@ -27,6 +27,7 @@ public class SesionCliente {
 
     private float ejeX;
     private float ejeY;
+    private int contadorInteraccion;
     private boolean listo;
 
     public SesionCliente(InetSocketAddress servidor, String descripcionServidor, String nombreJugador) throws SocketException {
@@ -143,13 +144,13 @@ public class SesionCliente {
         ultimaEntradaMilis = ahora;
         secuenciaEntrada++;
         cliente.enviar(new Mensaje(TipoMensaje.ENTRADA,
-                token,
-                String.valueOf(secuenciaEntrada),
-                String.valueOf(ejeX),
-                String.valueOf(ejeY),
-                "0",
-                "0",
-                InstantaneaPartida.bandera(listo)), servidor);
+            token,
+            String.valueOf(secuenciaEntrada),
+            String.valueOf(ejeX),
+            String.valueOf(ejeY),
+            String.valueOf(contadorInteraccion),
+            "0",
+            InstantaneaPartida.bandera(listo)), servidor);
     }
 
     private void perder(String causa) {
@@ -164,6 +165,10 @@ public class SesionCliente {
     public void setEjes(float x, float y) {
         ejeX = x;
         ejeY = y;
+    }
+
+    public void pulsarInteraccion() {
+        contadorInteraccion++;
     }
 
     public void alternarListo() {
