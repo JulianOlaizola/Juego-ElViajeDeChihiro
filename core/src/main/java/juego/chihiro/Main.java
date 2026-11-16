@@ -21,6 +21,7 @@ public class Main extends Game {
     private ControladorEntradas entradas;
     private AdministradorAudio audio;
     private Recursos recursos;
+    private String ultimaDireccion = "127.0.0.1";
 
     @Override
     public void create() {
@@ -80,6 +81,14 @@ public class Main extends Game {
 
     public Recursos getRecursos() {
         return recursos;
+    }
+
+    public String getUltimaDireccion() {
+        return ultimaDireccion;
+    }
+
+    public void setUltimaDireccion(String ultimaDireccion) {
+        this.ultimaDireccion = ultimaDireccion;
     }
 
     @Override

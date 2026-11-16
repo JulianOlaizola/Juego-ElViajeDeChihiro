@@ -1,15 +1,23 @@
 package juego.chihiro.servidor;
 
+import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.List;
 
 import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Gdx;
 
 import juego.chihiro.red.InterfacesRed;
 import juego.chihiro.red.Mensaje;
 import juego.chihiro.red.MensajeInvalidoException;
 import juego.chihiro.red.PaqueteRecibido;
 import juego.chihiro.red.TipoMensaje;
+import juego.chihiro.servidor.fisica.MapaInvalidoException;
+import juego.chihiro.servidor.fisica.MapaServidor;
+import juego.chihiro.servidor.fisica.MundoFisico;
+import juego.chihiro.servidor.logica.JugadorServidor;
+import juego.chihiro.utiles.Constantes;
 
 public class ServidorJuego extends ApplicationAdapter {
 
@@ -17,7 +25,12 @@ public class ServidorJuego extends ApplicationAdapter {
     private static final int MAXIMO_PAQUETES_POR_TICK = 256;
 
     private final ServidorUdp red;
+    private final JugadorServidor[] jugadores = new JugadorServidor[Constantes.CANTIDAD_JUGADORES];
+    private MapaServidor mapa;
+    private MundoFisico mundo;
+    private String nombreServidor = "Casa de Baños";
     private long ticks;
+    private long instanteAnterior;
 
     public ServidorJuego(ServidorUdp red) {
         this.red = red;
@@ -25,9 +38,34 @@ public class ServidorJuego extends ApplicationAdapter {
 
     @Override
     public void create() {
+        try {
+            mapa = new MapaServidor(Constantes.RUTA_MAPA);
+        } catch (MapaInvalidoException e) {
+            Registro.error("No se pudo cargar el mapa del servidor", e);
+            Gdx.app.exit();
+            return;
+        }
+        mundo = new MundoFisico(mapa);
+        for (int i = 0; i < jugadores.length; i++) {
+            jugadores[i] = new JugadorServidor(i + 1);
+            jugadores[i].ubicar(mundo, mapa.getAparicion(i + 1));
+        }
+        instanteAnterior = System.nanoTime();
+        nombreServidor = buscarNombreDelEquipo();
+
         Registro.info("Servidor de El Viaje de Chihiro escuchando por UDP en el puerto " + red.getPuerto());
+        Registro.info("Mundo físico Box2D listo: " + mundo.getCantidadParedes() + " paredes, "
+                + mundo.getCantidadSensores() + " objetos interactivos y " + jugadores.length + " jugadores");
         mostrarDirecciones();
         Registro.info("Comandos disponibles: estado, ayuda, salir");
+    }
+
+    private String buscarNombreDelEquipo() {
+        try {
+            return "Casa de Baños de " + InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            return nombreServidor;
+        }
     }
 
     private void mostrarDirecciones() {
@@ -47,8 +85,19 @@ public class ServidorJuego extends ApplicationAdapter {
 
     @Override
     public void render() {
+        if (mundo == null) {
+            return;
+        }
+        long ahora = System.nanoTime();
+        float delta = (ahora - instanteAnterior) / 1_000_000_000f;
+        instanteAnterior = ahora;
         ticks++;
+
         procesarEntrantes();
+        for (JugadorServidor jugador : jugadores) {
+            jugador.aplicarMovimiento();
+        }
+        mundo.avanzar(delta);
     }
 
     private void procesarEntrantes() {
@@ -72,6 +121,9 @@ public class ServidorJuego extends ApplicationAdapter {
             case PING:
                 responderPing(paquete);
                 break;
+            case DESCUBRIR:
+                responderDescubrimiento(paquete);
+                break;
             default:
                 Registro.aviso("Mensaje no esperado por el servidor: " + mensaje + " de " + paquete.getOrigen());
                 break;
@@ -84,16 +136,37 @@ public class ServidorJuego extends ApplicationAdapter {
         Registro.info("PING recibido de " + paquete.getOrigen() + ", respondido con PONG");
     }
 
+    private void responderDescubrimiento(PaqueteRecibido paquete) {
+        red.enviar(new Mensaje(TipoMensaje.ANUNCIO,
+                nombreServidor,
+                String.valueOf(red.getPuerto()),
+                String.valueOf(jugadoresConectados()),
+                String.valueOf(Constantes.CANTIDAD_JUGADORES)), paquete.getOrigen());
+    }
+
+    private int jugadoresConectados() {
+        return 0;
+    }
+
     public void imprimirEstado() {
         Registro.info("Ticks: " + ticks
                 + " | Recibidos: " + red.getPaquetesRecibidos()
                 + " | Enviados: " + red.getPaquetesEnviados()
                 + " | Descartados: " + red.getPaquetesDescartados()
                 + " | En cola: " + red.getPaquetesEnCola());
+        for (JugadorServidor jugador : jugadores) {
+            if (jugador != null) {
+                Registro.info("Jugador " + jugador.getNumero() + " en ("
+                        + Math.round(jugador.getCentroX()) + ", " + Math.round(jugador.getCentroY()) + ")");
+            }
+        }
     }
 
     @Override
     public void dispose() {
+        if (mundo != null) {
+            mundo.dispose();
+        }
         red.cerrar();
         Registro.info("Servidor cerrado.");
     }

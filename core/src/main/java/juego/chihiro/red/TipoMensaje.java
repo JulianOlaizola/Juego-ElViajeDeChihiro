@@ -2,7 +2,9 @@ package juego.chihiro.red;
 
 public enum TipoMensaje {
     PING,
-    PONG;
+    PONG,
+    DESCUBRIR,
+    ANUNCIO;
 
     public static TipoMensaje desdeTexto(String texto) {
         for (TipoMensaje tipo : values()) {
