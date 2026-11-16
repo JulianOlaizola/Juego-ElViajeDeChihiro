@@ -1,8 +1,6 @@
 package juego.chihiro.servidor;
 
-import java.net.InetAddress;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.List;
 
 import com.badlogic.gdx.ApplicationAdapter;
@@ -28,7 +26,6 @@ public class ServidorJuego extends ApplicationAdapter {
     private final JugadorServidor[] jugadores = new JugadorServidor[Constantes.CANTIDAD_JUGADORES];
     private MapaServidor mapa;
     private MundoFisico mundo;
-    private String nombreServidor = "Casa de Baños";
     private long ticks;
     private long instanteAnterior;
 
@@ -51,21 +48,12 @@ public class ServidorJuego extends ApplicationAdapter {
             jugadores[i].ubicar(mundo, mapa.getAparicion(i + 1));
         }
         instanteAnterior = System.nanoTime();
-        nombreServidor = buscarNombreDelEquipo();
 
         Registro.info("Servidor de El Viaje de Chihiro escuchando por UDP en el puerto " + red.getPuerto());
         Registro.info("Mundo físico Box2D listo: " + mundo.getCantidadParedes() + " paredes, "
-                + mundo.getCantidadSensores() + " objetos interactivos y " + jugadores.length + " jugadores");
+            + mundo.getCantidadSensores() + " objetos interactivos y " + jugadores.length + " jugadores");
         mostrarDirecciones();
         Registro.info("Comandos disponibles: estado, ayuda, salir");
-    }
-
-    private String buscarNombreDelEquipo() {
-        try {
-            return "Casa de Baños de " + InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            return nombreServidor;
-        }
     }
 
     private void mostrarDirecciones() {
@@ -121,9 +109,6 @@ public class ServidorJuego extends ApplicationAdapter {
             case PING:
                 responderPing(paquete);
                 break;
-            case DESCUBRIR:
-                responderDescubrimiento(paquete);
-                break;
             default:
                 Registro.aviso("Mensaje no esperado por el servidor: " + mensaje + " de " + paquete.getOrigen());
                 break;
@@ -136,28 +121,16 @@ public class ServidorJuego extends ApplicationAdapter {
         Registro.info("PING recibido de " + paquete.getOrigen() + ", respondido con PONG");
     }
 
-    private void responderDescubrimiento(PaqueteRecibido paquete) {
-        red.enviar(new Mensaje(TipoMensaje.ANUNCIO,
-                nombreServidor,
-                String.valueOf(red.getPuerto()),
-                String.valueOf(jugadoresConectados()),
-                String.valueOf(Constantes.CANTIDAD_JUGADORES)), paquete.getOrigen());
-    }
-
-    private int jugadoresConectados() {
-        return 0;
-    }
-
     public void imprimirEstado() {
         Registro.info("Ticks: " + ticks
-                + " | Recibidos: " + red.getPaquetesRecibidos()
-                + " | Enviados: " + red.getPaquetesEnviados()
-                + " | Descartados: " + red.getPaquetesDescartados()
-                + " | En cola: " + red.getPaquetesEnCola());
+            + " | Recibidos: " + red.getPaquetesRecibidos()
+            + " | Enviados: " + red.getPaquetesEnviados()
+            + " | Descartados: " + red.getPaquetesDescartados()
+            + " | En cola: " + red.getPaquetesEnCola());
         for (JugadorServidor jugador : jugadores) {
             if (jugador != null) {
                 Registro.info("Jugador " + jugador.getNumero() + " en ("
-                        + Math.round(jugador.getCentroX()) + ", " + Math.round(jugador.getCentroY()) + ")");
+                    + Math.round(jugador.getCentroX()) + ", " + Math.round(jugador.getCentroY()) + ")");
             }
         }
     }
