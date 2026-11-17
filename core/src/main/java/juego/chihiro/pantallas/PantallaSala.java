@@ -31,16 +31,13 @@ public class PantallaSala extends PantallaBase {
             juego.cambiarPantalla(new PantallaMensaje(juego, "Se cortó la conexión", sesion.getMotivo()));
             return;
         }
-        if (sesion.getInstantanea().getFase() == FasePartida.SALA) {
-            sesion.setEjes(0f, 0f);
-            if (entradas.consumir(Accion.CONFIRMAR)) {
-                sesion.alternarListo();
-            }
-        } else {
-            sesion.setEjes(entradas.ejeHorizontalCombinado(), entradas.ejeVerticalCombinado());
-            if (entradas.consumirInteraccion()) {
-                sesion.pulsarInteraccion();
-            }
+        if (sesion.getInstantanea().getFase() != FasePartida.SALA) {
+            juego.cambiarPantalla(new PantallaJuego(juego));
+            return;
+        }
+        sesion.setEjes(0f, 0f);
+        if (entradas.consumir(Accion.CONFIRMAR)) {
+            sesion.alternarListo();
         }
         entradas.limpiarAcciones();
         dibujar();
@@ -72,21 +69,9 @@ public class PantallaSala extends PantallaBase {
             y -= 44f;
         }
 
-        if (instantanea.getFase() == FasePartida.SALA) {
-            String accion = sesion.estaListo() ? "ENTER para cancelar \"listo\"" : "ENTER cuando estés listo";
-            linea(batch, recursos.getFuenteMedia(), accion, 170f, Color.WHITE);
-            linea(batch, recursos.getFuenteChica(), "La partida empieza cuando los dos jugadores están listos.", 130f, Color.LIGHT_GRAY);
-        } else {
-            InstantaneaPartida.DatosJugador propio = instantanea.getJugador(sesion.getNumeroJugador());
-            linea(batch, recursos.getFuenteMedia(), "Partida en curso  -  tiempo " + Math.round(instantanea.getTiempoRestante())
-                + " s  -  pedidos " + instantanea.getPedidosCompletados() + "  -  puntaje " + instantanea.getPuntaje(), 190f, Color.LIME);
-            linea(batch, recursos.getFuenteChica(), "Tu personaje en (" + Math.round(propio.getX()) + ", "
-                + Math.round(propio.getY()) + ") mirando " + propio.getDireccion() + " con " + propio.getObjeto().getEtiqueta()
-                + "  -  estados recibidos " + sesion.getInstantaneasRecibidas() + ", descartados por viejos "
-                + sesion.getInstantaneasDescartadas(), 150f, Color.WHITE);
-            linea(batch, recursos.getFuenteChica(),
-                "Movete con WASD o flechas e interactuá con E: todo lo calcula el servidor.", 120f, Color.LIGHT_GRAY);
-        }
+        String accion = sesion.estaListo() ? "ENTER para cancelar \"listo\"" : "ENTER cuando estés listo";
+        linea(batch, recursos.getFuenteMedia(), accion, 170f, Color.WHITE);
+        linea(batch, recursos.getFuenteChica(), "La partida empieza cuando los dos jugadores están listos.", 130f, Color.LIGHT_GRAY);
         pie(batch, "ESC para salir de la sala");
         batch.end();
     }

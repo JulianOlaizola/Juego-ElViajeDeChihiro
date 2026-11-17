@@ -11,8 +11,6 @@ public abstract class Entidad {
         this.hitbox = new Rectangle(x, y, ancho, alto);
     }
 
-    public abstract void actualizar(float delta);
-
     public abstract void dibujar(SpriteBatch batch);
 
     public Rectangle getHitbox() {
