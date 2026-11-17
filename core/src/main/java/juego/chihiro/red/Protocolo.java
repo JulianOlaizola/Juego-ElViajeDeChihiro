@@ -13,6 +13,12 @@ public final class Protocolo {
     public static final int TAMANIO_MAXIMO_PAQUETE = 4096;
     public static final String SEPARADOR = ";";
     public static final Charset CODIFICACION = StandardCharsets.UTF_8;
+    public static final String SIN_VALOR = "-";
+    public static final long TIEMPO_ESPERA_MILIS = 5000;
+    public static final long INTERVALO_ENTRADA_MILIS = 33;
+    public static final long INTERVALO_REINTENTO_CONEXION_MILIS = 500;
+    public static final int INTENTOS_CONEXION = 10;
+    public static final int TICKS_ENTRE_ESTADOS = 3;
 
     private Protocolo() {
     }

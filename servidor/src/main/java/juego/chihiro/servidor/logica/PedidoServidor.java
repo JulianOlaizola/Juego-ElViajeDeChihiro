@@ -1,8 +1,10 @@
-package juego.chihiro.mundo;
+package juego.chihiro.servidor.logica;
 
+import juego.chihiro.mundo.ObjetoEnMano;
 import juego.chihiro.utiles.Constantes;
 
-public class Pedido {
+public class PedidoServidor {
+
     private boolean salEntregada;
     private boolean aguaEntregada;
     private float tiempoRestante = Constantes.TIEMPO_PEDIDO;

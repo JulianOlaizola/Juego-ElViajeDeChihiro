@@ -6,7 +6,11 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
 
 public class ControladorEntradas extends InputAdapter {
+    private static final int LARGO_MAXIMO_TEXTO = 40;
+
     private final boolean[] acciones = new boolean[Accion.values().length];
+    private final StringBuilder texto = new StringBuilder();
+    private boolean capturandoTexto;
 
     private boolean arriba1;
     private boolean abajo1;
@@ -20,6 +24,9 @@ public class ControladorEntradas extends InputAdapter {
 
     @Override
     public boolean keyDown(int tecla) {
+        if (capturandoTexto) {
+            return teclaDeTexto(tecla);
+        }
         switch (tecla) {
             case Input.Keys.W:
                 arriba1 = true;
@@ -111,8 +118,34 @@ public class ControladorEntradas extends InputAdapter {
         }
     }
 
+    private boolean teclaDeTexto(int tecla) {
+        switch (tecla) {
+            case Input.Keys.ENTER:
+            case Input.Keys.NUMPAD_ENTER:
+                marcar(Accion.CONFIRMAR);
+                return true;
+            case Input.Keys.ESCAPE:
+                marcar(Accion.VOLVER);
+                return true;
+            case Input.Keys.BACKSPACE:
+                if (texto.length() > 0) {
+                    texto.setLength(texto.length() - 1);
+                }
+                return true;
+            default:
+                return false;
+        }
+    }
+
     @Override
     public boolean keyTyped(char caracter) {
+        if (capturandoTexto) {
+            if (esCaracterDeDireccion(caracter) && texto.length() < LARGO_MAXIMO_TEXTO) {
+                texto.append(caracter);
+                return true;
+            }
+            return false;
+        }
         if (caracter == '+' || caracter == '=') {
             marcar(Accion.SUBIR_VOLUMEN);
             return true;
@@ -136,6 +169,20 @@ public class ControladorEntradas extends InputAdapter {
         return (arriba ? 1f : 0f) - (abajo ? 1f : 0f);
     }
 
+    public float ejeHorizontalCombinado() {
+        return Math.max(-1f, Math.min(1f, ejeHorizontal(1) + ejeHorizontal(2)));
+    }
+
+    public float ejeVerticalCombinado() {
+        return Math.max(-1f, Math.min(1f, ejeVertical(1) + ejeVertical(2)));
+    }
+
+    public boolean consumirInteraccion() {
+        boolean primero = consumir(Accion.INTERACTUAR_JUGADOR_1);
+        boolean segundo = consumir(Accion.INTERACTUAR_JUGADOR_2);
+        return primero || segundo;
+    }
+
     public boolean consumir(Accion accion) {
         if (acciones[accion.ordinal()]) {
             acciones[accion.ordinal()] = false;
@@ -157,6 +204,31 @@ public class ControladorEntradas extends InputAdapter {
         abajo2 = false;
         izquierda2 = false;
         derecha2 = false;
+    }
+
+    private static boolean esCaracterDeDireccion(char caracter) {
+        return (caracter >= '0' && caracter <= '9')
+            || (caracter >= 'a' && caracter <= 'z')
+            || (caracter >= 'A' && caracter <= 'Z')
+            || caracter == '.' || caracter == ':' || caracter == '-';
+    }
+
+    public void iniciarCapturaTexto(String inicial) {
+        texto.setLength(0);
+        if (inicial != null) {
+            texto.append(inicial);
+        }
+        capturandoTexto = true;
+        soltarDirecciones();
+        limpiarAcciones();
+    }
+
+    public void detenerCapturaTexto() {
+        capturandoTexto = false;
+    }
+
+    public String getTexto() {
+        return texto.toString();
     }
 
     private void marcar(Accion accion) {

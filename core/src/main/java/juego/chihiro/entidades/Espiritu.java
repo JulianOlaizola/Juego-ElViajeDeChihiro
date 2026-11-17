@@ -8,19 +8,28 @@ import juego.chihiro.utiles.Recursos;
 
 public class Espiritu extends Entidad {
     private final Recursos recursos;
+    private boolean visible;
 
     public Espiritu(float x, float y, Recursos recursos) {
         super(x, y, Constantes.TAM_TILE, Constantes.TAM_TILE);
         this.recursos = recursos;
     }
 
-    @Override
-    public void actualizar(float delta) {
-        tiempoAnimacion += delta;
+    public void actualizar(float delta, boolean presente) {
+        if (presente && !visible) {
+            tiempoAnimacion = 0f;
+        }
+        visible = presente;
+        if (visible) {
+            tiempoAnimacion += delta;
+        }
     }
 
     @Override
     public void dibujar(SpriteBatch batch) {
+        if (!visible) {
+            return;
+        }
         TextureRegion cuadro = recursos.getFlotarEspiritu().getKeyFrame(tiempoAnimacion);
         batch.draw(cuadro, hitbox.x, hitbox.y, hitbox.width, hitbox.height);
     }

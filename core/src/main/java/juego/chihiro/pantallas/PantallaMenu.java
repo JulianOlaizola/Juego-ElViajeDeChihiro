@@ -17,7 +17,9 @@ import juego.chihiro.utiles.Constantes;
 import juego.chihiro.utiles.Recursos;
 
 public class PantallaMenu extends ScreenAdapter {
-    private static final String[] OPCIONES = { "Jugar", "Instrucciones", "Salir" };
+    private static final String[] OPCIONES = {
+        "Buscar partida en la red", "Conectar por IP", "Instrucciones", "Salir"
+    };
 
     private final Main juego;
     private final Recursos recursos;
@@ -32,6 +34,11 @@ public class PantallaMenu extends ScreenAdapter {
         this.recursos = juego.getRecursos();
         this.entradas = juego.getEntradas();
         this.vista = new FitViewport(Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA, camara);
+    }
+
+    @Override
+    public void show() {
+        juego.cerrarSesion();
     }
 
     @Override
@@ -54,10 +61,14 @@ public class PantallaMenu extends ScreenAdapter {
 
         if (entradas.consumir(Accion.CONFIRMAR)) {
             if (seleccion == 0) {
-                juego.cambiarPantalla(new PantallaJuego(juego));
+                juego.cambiarPantalla(new PantallaBuscarServidores(juego));
                 return false;
             }
             if (seleccion == 1) {
+                juego.cambiarPantalla(new PantallaConectarIp(juego, juego.getUltimaDireccion()));
+                return false;
+            }
+            if (seleccion == 2) {
                 juego.cambiarPantalla(new PantallaInstrucciones(juego));
                 return false;
             }
@@ -78,18 +89,18 @@ public class PantallaMenu extends ScreenAdapter {
         batch.setProjectionMatrix(camara.combined);
         batch.begin();
 
-        float anchoLogo = 480f;
+        float anchoLogo = 400f;
         float altoLogo = anchoLogo * recursos.getLogo().getRegionHeight()
             / recursos.getLogo().getRegionWidth();
         batch.draw(recursos.getLogo(), (Constantes.ANCHO_VISTA - anchoLogo) / 2f,
-                   Constantes.ALTO_VISTA - altoLogo - 46f, anchoLogo, altoLogo);
+                   Constantes.ALTO_VISTA - altoLogo - 30f, anchoLogo, altoLogo);
 
         for (int i = 0; i < OPCIONES.length; i++) {
             boolean elegida = i == seleccion;
             recursos.getFuenteMedia().setColor(elegida ? Color.GOLD : Color.WHITE);
             recursos.getFuenteMedia().draw(batch,
                 (elegida ? "> " : "   ") + OPCIONES[i],
-                0f, 252f - i * 46f, Constantes.ANCHO_VISTA, Align.center, false);
+                0f, 280f - i * 44f, Constantes.ANCHO_VISTA, Align.center, false);
         }
         recursos.getFuenteMedia().setColor(Color.WHITE);
 
