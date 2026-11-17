@@ -1,20 +1,33 @@
 package juego.chihiro.servidor;
 
+import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.List;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 
+import juego.chihiro.red.FasePartida;
+import juego.chihiro.red.InstantaneaPartida;
 import juego.chihiro.red.InterfacesRed;
+import juego.chihiro.red.LectorCampos;
 import juego.chihiro.red.Mensaje;
 import juego.chihiro.red.MensajeInvalidoException;
+import juego.chihiro.red.MotivoRechazo;
 import juego.chihiro.red.PaqueteRecibido;
+import juego.chihiro.red.Protocolo;
+import juego.chihiro.red.TipoEvento;
 import juego.chihiro.red.TipoMensaje;
 import juego.chihiro.servidor.fisica.MapaInvalidoException;
 import juego.chihiro.servidor.fisica.MapaServidor;
-import juego.chihiro.servidor.fisica.MundoFisico;
+import juego.chihiro.servidor.logica.Aviso;
 import juego.chihiro.servidor.logica.JugadorServidor;
+import juego.chihiro.servidor.logica.Partida;
+import juego.chihiro.servidor.logica.PedidoServidor;
+import juego.chihiro.servidor.logica.TinaServidor;
+import juego.chihiro.servidor.sesiones.GestorSesiones;
+import juego.chihiro.servidor.sesiones.SesionJugador;
 import juego.chihiro.utiles.Constantes;
 
 public class ServidorJuego extends ApplicationAdapter {
@@ -23,10 +36,13 @@ public class ServidorJuego extends ApplicationAdapter {
     private static final int MAXIMO_PAQUETES_POR_TICK = 256;
 
     private final ServidorUdp red;
-    private final JugadorServidor[] jugadores = new JugadorServidor[Constantes.CANTIDAD_JUGADORES];
+    private final GestorSesiones sesiones = new GestorSesiones();
     private MapaServidor mapa;
-    private MundoFisico mundo;
+    private Partida partida;
+    private FasePartida fase = FasePartida.SALA;
+    private String nombreServidor = "Casa de Baños";
     private long ticks;
+    private long secuenciaEstado;
     private long instanteAnterior;
 
     public ServidorJuego(ServidorUdp red) {
@@ -42,18 +58,22 @@ public class ServidorJuego extends ApplicationAdapter {
             Gdx.app.exit();
             return;
         }
-        mundo = new MundoFisico(mapa);
-        for (int i = 0; i < jugadores.length; i++) {
-            jugadores[i] = new JugadorServidor(i + 1);
-            jugadores[i].ubicar(mundo, mapa.getAparicion(i + 1));
-        }
         instanteAnterior = System.nanoTime();
+        nombreServidor = buscarNombreDelEquipo();
 
         Registro.info("Servidor de El Viaje de Chihiro escuchando por UDP en el puerto " + red.getPuerto());
-        Registro.info("Mundo físico Box2D listo: " + mundo.getCantidadParedes() + " paredes, "
-            + mundo.getCantidadSensores() + " objetos interactivos y " + jugadores.length + " jugadores");
+        Registro.info("Mapa cargado: " + mapa.getColisiones().size + " paredes y "
+            + mapa.getInteractivos().size + " objetos interactivos. Box2D se crea al empezar cada partida.");
         mostrarDirecciones();
-        Registro.info("Comandos disponibles: estado, ayuda, salir");
+        Registro.info("Esperando jugadores. Comandos disponibles: estado, ayuda, salir");
+    }
+
+    private String buscarNombreDelEquipo() {
+        try {
+            return "Casa de Baños de " + InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            return nombreServidor;
+        }
     }
 
     private void mostrarDirecciones() {
@@ -73,19 +93,25 @@ public class ServidorJuego extends ApplicationAdapter {
 
     @Override
     public void render() {
-        if (mundo == null) {
+        if (mapa == null) {
             return;
         }
         long ahora = System.nanoTime();
         float delta = (ahora - instanteAnterior) / 1_000_000_000f;
         instanteAnterior = ahora;
         ticks++;
+        long ahoraMilis = System.currentTimeMillis();
 
         procesarEntrantes();
-        for (JugadorServidor jugador : jugadores) {
-            jugador.aplicarMovimiento();
+        reenviarEventos(ahoraMilis);
+        revisarDesconexiones(ahoraMilis);
+        actualizarFase();
+        if (partida != null && fase == FasePartida.JUGANDO) {
+            simular(delta);
         }
-        mundo.avanzar(delta);
+        if (ticks % Protocolo.TICKS_ENTRE_ESTADOS == 0) {
+            difundirEstado();
+        }
     }
 
     private void procesarEntrantes() {
@@ -109,6 +135,21 @@ public class ServidorJuego extends ApplicationAdapter {
             case PING:
                 responderPing(paquete);
                 break;
+            case DESCUBRIR:
+                responderDescubrimiento(paquete);
+                break;
+            case CONECTAR:
+                conectar(paquete);
+                break;
+            case ENTRADA:
+                recibirEntrada(paquete);
+                break;
+            case ACK:
+                confirmarEvento(paquete);
+                break;
+            case DESCONECTAR:
+                desconectar(paquete);
+                break;
             default:
                 Registro.aviso("Mensaje no esperado por el servidor: " + mensaje + " de " + paquete.getOrigen());
                 break;
@@ -118,28 +159,224 @@ public class ServidorJuego extends ApplicationAdapter {
     private void responderPing(PaqueteRecibido paquete) throws MensajeInvalidoException {
         String marcaDeTiempo = paquete.getMensaje().campo(0);
         red.enviar(new Mensaje(TipoMensaje.PONG, marcaDeTiempo, String.valueOf(ticks)), paquete.getOrigen());
-        Registro.info("PING recibido de " + paquete.getOrigen() + ", respondido con PONG");
+    }
+
+    private void responderDescubrimiento(PaqueteRecibido paquete) {
+        red.enviar(new Mensaje(TipoMensaje.ANUNCIO,
+            nombreServidor,
+            String.valueOf(red.getPuerto()),
+            String.valueOf(sesiones.cantidadConectados()),
+            String.valueOf(Constantes.CANTIDAD_JUGADORES)), paquete.getOrigen());
+    }
+
+    private void conectar(PaqueteRecibido paquete) throws MensajeInvalidoException {
+        String nombre = paquete.getMensaje().campo(0);
+        String tokenPrevio = paquete.getMensaje().campo(1);
+        boolean eraConocido = sesiones.buscarPorToken(tokenPrevio) != null;
+        if (fase != FasePartida.SALA && !eraConocido) {
+            red.enviar(new Mensaje(TipoMensaje.RECHAZO, MotivoRechazo.PARTIDA_EN_CURSO.name()), paquete.getOrigen());
+            Registro.aviso("Rechazado " + paquete.getOrigen() + ": la partida ya empezó");
+            return;
+        }
+        SesionJugador sesion = sesiones.conectar(nombre, tokenPrevio, paquete.getOrigen(), System.currentTimeMillis());
+        if (sesion == null) {
+            red.enviar(new Mensaje(TipoMensaje.RECHAZO, MotivoRechazo.SALA_LLENA.name()), paquete.getOrigen());
+            Registro.aviso("Rechazado " + paquete.getOrigen() + ": la sala está llena");
+            return;
+        }
+        red.enviar(new Mensaje(TipoMensaje.BIENVENIDA, String.valueOf(sesion.getNumero()), sesion.getToken()),
+            paquete.getOrigen());
+        Registro.info("Jugador " + sesion.getNumero() + " (" + sesion.getNombre() + ") conectado desde " + paquete.getOrigen());
+    }
+
+    private void recibirEntrada(PaqueteRecibido paquete) throws MensajeInvalidoException {
+        LectorCampos lector = new LectorCampos(paquete.getMensaje());
+        SesionJugador sesion = sesiones.buscarPorToken(lector.texto());
+        if (sesion == null || !sesion.estaConectado()) {
+            red.enviar(new Mensaje(TipoMensaje.RECHAZO, MotivoRechazo.SESION_DESCONOCIDA.name()), paquete.getOrigen());
+            return;
+        }
+        long secuencia = lector.largo();
+        float ejeX = lector.decimal();
+        float ejeY = lector.decimal();
+        int interacciones = lector.entero();
+        int pausas = lector.entero();
+        boolean listo = lector.bandera();
+        sesion.registrarEntrada(secuencia, ejeX, ejeY, interacciones, pausas, listo,
+            paquete.getOrigen(), System.currentTimeMillis());
+    }
+
+    private void confirmarEvento(PaqueteRecibido paquete) throws MensajeInvalidoException {
+        SesionJugador sesion = sesiones.buscarPorToken(paquete.getMensaje().campo(0));
+        if (sesion != null) {
+            sesion.getCanal().confirmar(paquete.getMensaje().campoLargo(1));
+        }
+    }
+
+    private void enviarEvento(SesionJugador sesion, TipoEvento tipo, String... datos) {
+        if (sesion.estaConectado()) {
+            red.enviar(sesion.getCanal().encolar(tipo, datos), sesion.getDireccion());
+        }
+    }
+
+    private void difundirEvento(TipoEvento tipo, String... datos) {
+        for (SesionJugador sesion : sesiones.conectadas()) {
+            enviarEvento(sesion, tipo, datos);
+        }
+    }
+
+    private void reenviarEventos(long ahora) {
+        for (SesionJugador sesion : sesiones.conectadas()) {
+            for (Mensaje mensaje : sesion.getCanal().paraReenviar(ahora)) {
+                red.enviar(mensaje, sesion.getDireccion());
+            }
+        }
+    }
+
+    private void desconectar(PaqueteRecibido paquete) throws MensajeInvalidoException {
+        SesionJugador sesion = sesiones.buscarPorToken(paquete.getMensaje().campo(0));
+        if (sesion != null) {
+            Registro.info("Jugador " + sesion.getNumero() + " salió de la partida");
+            quitar(sesion);
+        }
+    }
+
+    private void revisarDesconexiones(long ahora) {
+        for (SesionJugador sesion : sesiones.vencidas(ahora)) {
+            Registro.aviso("Jugador " + sesion.getNumero() + " no responde hace "
+                + (Protocolo.TIEMPO_ESPERA_MILIS / 1000) + " segundos: se lo desconecta");
+            quitar(sesion);
+        }
+    }
+
+    private void quitar(SesionJugador sesion) {
+        int numero = sesion.getNumero();
+        sesion.liberar();
+        difundirEvento(TipoEvento.JUGADOR_DESCONECTADO, String.valueOf(numero));
+        if (fase != FasePartida.SALA) {
+            volverALaSala();
+        }
+    }
+
+    private void actualizarFase() {
+        if (fase == FasePartida.SALA && sesiones.todosListos()) {
+            comenzarPartida();
+        }
+    }
+
+    private void simular(float delta) {
+        for (SesionJugador sesion : sesiones.todas()) {
+            partida.aplicarEntrada(sesion.getNumero(), sesion.getEjeX(), sesion.getEjeY(),
+                sesion.getContadorInteraccion());
+        }
+        partida.actualizar(delta);
+        for (Aviso aviso : partida.retirarAvisos()) {
+            if (aviso.getJugador() == 0) {
+                difundirEvento(TipoEvento.AVISO, aviso.getTexto(), aviso.getEfecto().name());
+            } else {
+                enviarEvento(sesiones.get(aviso.getJugador()), TipoEvento.AVISO, aviso.getTexto(), aviso.getEfecto().name());
+            }
+        }
+        if (partida.estaTerminada()) {
+            fase = FasePartida.TERMINADA;
+            difundirEvento(TipoEvento.FIN_PARTIDA, partida.gano() ? "1" : "0", String.valueOf(partida.getPuntaje()));
+            Registro.info("Partida terminada. " + (partida.gano() ? "Ganaron" : "Perdieron")
+                + " con " + partida.getPuntaje() + " puntos");
+        }
+    }
+
+    private void comenzarPartida() {
+        sesiones.reiniciarListos();
+        int[] contadores = new int[Constantes.CANTIDAD_JUGADORES];
+        for (SesionJugador sesion : sesiones.todas()) {
+            contadores[sesion.getNumero() - 1] = sesion.getContadorInteraccion();
+        }
+        descartarPartida();
+        partida = new Partida(mapa, contadores);
+        fase = FasePartida.JUGANDO;
+        difundirEvento(TipoEvento.INICIO_PARTIDA);
+        Registro.info("Los dos jugadores están listos: comienza la partida con un mundo Box2D nuevo");
+    }
+
+    private void descartarPartida() {
+        if (partida != null) {
+            partida.dispose();
+            partida = null;
+        }
+    }
+
+    private void volverALaSala() {
+        fase = FasePartida.SALA;
+        sesiones.reiniciarListos();
+        descartarPartida();
+        Registro.info("La partida se canceló: se vuelve a la sala de espera");
+    }
+
+    private void difundirEstado() {
+        InstantaneaPartida instantanea = new InstantaneaPartida();
+        instantanea.setSecuencia(++secuenciaEstado);
+        instantanea.setFase(fase);
+        for (SesionJugador sesion : sesiones.todas()) {
+            instantanea.setJugador(sesion.getNumero(), sesion.estaConectado(), sesion.estaListo());
+        }
+        if (partida != null) {
+            completarConLaPartida(instantanea);
+        }
+        Mensaje mensaje = instantanea.aMensaje();
+        for (SesionJugador sesion : sesiones.conectadas()) {
+            red.enviar(mensaje, sesion.getDireccion());
+        }
+    }
+
+    private void completarConLaPartida(InstantaneaPartida instantanea) {
+        instantanea.setPartida(partida.getTiempoRestante(), partida.getPedidosCompletados(),
+            partida.getPedidosFallidos(), partida.getPuntaje(), partida.gano());
+        instantanea.setCaldera(partida.estaLaCalderaEncendida(), partida.estaElAguaCaliente(),
+            partida.getProporcionCaldera());
+        for (int numero = 1; numero <= Constantes.CANTIDAD_JUGADORES; numero++) {
+            JugadorServidor jugador = partida.getJugador(numero);
+            instantanea.setCuerpo(numero, jugador.getCentroX(), jugador.getCentroY(), jugador.getDireccion(),
+                jugador.estaEnMovimiento(), jugador.getObjetoEnMano());
+        }
+        for (TinaServidor tina : partida.getTinas()) {
+            PedidoServidor pedido = tina.getPedido();
+            instantanea.agregarTina(tina.getEstado(),
+                pedido != null && pedido.faltaSal(),
+                pedido != null && pedido.faltaAgua(),
+                pedido == null ? 0f : pedido.getProporcionRestante());
+        }
     }
 
     public void imprimirEstado() {
-        Registro.info("Ticks: " + ticks
+        Registro.info("Fase: " + fase + " | Ticks: " + ticks
             + " | Recibidos: " + red.getPaquetesRecibidos()
             + " | Enviados: " + red.getPaquetesEnviados()
             + " | Descartados: " + red.getPaquetesDescartados()
             + " | En cola: " + red.getPaquetesEnCola());
-        for (JugadorServidor jugador : jugadores) {
-            if (jugador != null) {
-                Registro.info("Jugador " + jugador.getNumero() + " en ("
-                    + Math.round(jugador.getCentroX()) + ", " + Math.round(jugador.getCentroY()) + ")");
-            }
+        for (SesionJugador sesion : sesiones.todas()) {
+            String detalle = sesion.estaConectado()
+                ? sesion.getNombre() + " en " + sesion.getDireccion() + (sesion.estaListo() ? " (listo)" : "")
+                + " | eventos sin confirmar: " + sesion.getCanal().getPendientes()
+                + " | reenvíos: " + sesion.getCanal().getReenvios()
+                : "libre";
+            Registro.info("Jugador " + sesion.getNumero() + ": " + detalle);
+        }
+        if (partida == null) {
+            return;
+        }
+        Registro.info("Tiempo: " + Math.round(partida.getTiempoRestante()) + " s | Pedidos: "
+            + partida.getPedidosCompletados() + " | Fallos: " + partida.getPedidosFallidos()
+            + " | Puntaje: " + partida.getPuntaje());
+        for (int numero = 1; numero <= Constantes.CANTIDAD_JUGADORES; numero++) {
+            JugadorServidor jugador = partida.getJugador(numero);
+            Registro.info("Cuerpo del jugador " + numero + " en (" + Math.round(jugador.getCentroX()) + ", "
+                + Math.round(jugador.getCentroY()) + ") con " + jugador.getObjetoEnMano().getEtiqueta());
         }
     }
 
     @Override
     public void dispose() {
-        if (mundo != null) {
-            mundo.dispose();
-        }
+        descartarPartida();
         red.cerrar();
         Registro.info("Servidor cerrado.");
     }

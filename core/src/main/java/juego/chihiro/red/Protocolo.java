@@ -19,6 +19,7 @@ public final class Protocolo {
     public static final long INTERVALO_REINTENTO_CONEXION_MILIS = 500;
     public static final int INTENTOS_CONEXION = 10;
     public static final int TICKS_ENTRE_ESTADOS = 3;
+    public static final long INTERVALO_REENVIO_MILIS = 200;
 
     private Protocolo() {
     }

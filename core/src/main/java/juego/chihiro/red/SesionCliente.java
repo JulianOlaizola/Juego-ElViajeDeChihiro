@@ -24,6 +24,7 @@ public class SesionCliente {
     private long secuenciaEntrada;
     private InstantaneaPartida instantanea = new InstantaneaPartida();
     private boolean hayInstantanea;
+    private final ReceptorEventos eventos = new ReceptorEventos();
     private long instantaneasRecibidas;
     private long instantaneasDescartadas;
 
@@ -114,8 +115,12 @@ public class SesionCliente {
     private void atender(Mensaje mensaje) throws MensajeInvalidoException {
         switch (mensaje.tipo()) {
             case BIENVENIDA:
+                String tokenNuevo = mensaje.campo(1);
+                if (!tokenNuevo.equals(token)) {
+                    eventos.reiniciar();
+                }
                 numeroJugador = mensaje.campoEntero(0);
-                token = mensaje.campo(1);
+                token = tokenNuevo;
                 estado = EstadoConexion.CONECTADO;
                 motivo = "";
                 break;
@@ -126,6 +131,11 @@ public class SesionCliente {
                 break;
             case ESTADO:
                 recibirInstantanea(InstantaneaPartida.desdeMensaje(mensaje));
+                break;
+            case EVENTO:
+                EventoRed evento = EventoRed.desdeMensaje(mensaje);
+                cliente.enviar(new Mensaje(TipoMensaje.ACK, token, String.valueOf(evento.getId())), servidor);
+                eventos.recibir(evento);
                 break;
             default:
                 break;
@@ -152,13 +162,13 @@ public class SesionCliente {
         ultimaEntradaMilis = ahora;
         secuenciaEntrada++;
         cliente.enviar(new Mensaje(TipoMensaje.ENTRADA,
-                token,
-                String.valueOf(secuenciaEntrada),
-                String.valueOf(ejeX),
-                String.valueOf(ejeY),
-                String.valueOf(contadorInteraccion),
-                "0",
-                InstantaneaPartida.bandera(listo)), servidor);
+            token,
+            String.valueOf(secuenciaEntrada),
+            String.valueOf(ejeX),
+            String.valueOf(ejeY),
+            String.valueOf(contadorInteraccion),
+            "0",
+            InstantaneaPartida.bandera(listo)), servidor);
     }
 
     private void perder(String causa) {
@@ -219,6 +229,14 @@ public class SesionCliente {
 
     public boolean tieneInstantanea() {
         return hayInstantanea;
+    }
+
+    public EventoRed siguienteEvento() {
+        return eventos.siguiente();
+    }
+
+    public long getEventosDuplicados() {
+        return eventos.getDuplicados();
     }
 
     public long getInstantaneasRecibidas() {

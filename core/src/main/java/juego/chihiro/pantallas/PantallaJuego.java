@@ -21,6 +21,7 @@ import juego.chihiro.mundo.EstadoTina;
 import juego.chihiro.mundo.MapaCasaBanos;
 import juego.chihiro.mundo.ObjetoInteractivo;
 import juego.chihiro.red.EstadoConexion;
+import juego.chihiro.red.EventoRed;
 import juego.chihiro.red.FasePartida;
 import juego.chihiro.red.InstantaneaPartida;
 import juego.chihiro.red.SesionCliente;
@@ -48,6 +49,8 @@ public class PantallaJuego extends ScreenAdapter {
 
     private boolean mostrarDepuracion;
     private boolean camaraUbicada;
+    private String mensaje = "";
+    private float tiempoMensaje;
 
     public PantallaJuego(Main juego) {
         this.juego = juego;
@@ -94,6 +97,7 @@ public class PantallaJuego extends ScreenAdapter {
             return false;
         }
 
+        atenderEventos(delta);
         InstantaneaPartida estado = sesion.getInstantanea();
         if (estado.getFase() == FasePartida.SALA) {
             juego.cambiarPantalla(new PantallaSala(juego));
@@ -124,6 +128,33 @@ public class PantallaJuego extends ScreenAdapter {
         }
         seguirConLaCamara(delta);
         return true;
+    }
+
+    private void atenderEventos(float delta) {
+        if (tiempoMensaje > 0f) {
+            tiempoMensaje -= delta;
+        }
+        EventoRed evento;
+        while ((evento = sesion.siguienteEvento()) != null) {
+            switch (evento.getTipo()) {
+                case AVISO:
+                    mostrarMensaje(evento.dato(0));
+                    break;
+                case JUGADOR_DESCONECTADO:
+                    mostrarMensaje("El jugador " + evento.dato(0) + " se desconectó");
+                    break;
+                case JUGADOR_RECONECTADO:
+                    mostrarMensaje("El jugador " + evento.dato(0) + " volvió a la partida");
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    private void mostrarMensaje(String texto) {
+        mensaje = texto;
+        tiempoMensaje = Constantes.DURACION_MENSAJE;
     }
 
     private void seguirConLaCamara(float delta) {
@@ -169,7 +200,7 @@ public class PantallaJuego extends ScreenAdapter {
             depurador.dibujar(camaraMundo, mapa, jugadores);
         }
 
-        hud.dibujar(batch, estado, sesion.getNumeroJugador(), "");
+        hud.dibujar(batch, estado, sesion.getNumeroJugador(), tiempoMensaje > 0f ? mensaje : "");
 
         if (estado.getFase() == FasePartida.TERMINADA) {
             dibujarVelo(estado.gano() ? "¡Turno completado!" : "Se cerró la casa de baños",

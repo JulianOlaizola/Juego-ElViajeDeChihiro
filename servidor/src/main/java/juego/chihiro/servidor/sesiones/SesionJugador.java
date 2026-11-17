@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 public class SesionJugador {
 
     private final int numero;
+    private final CanalConfiable canal = new CanalConfiable();
     private String token;
     private String nombre = "";
     private InetSocketAddress direccion;
@@ -33,6 +34,7 @@ public class SesionJugador {
         this.ejeY = 0f;
         this.contadorInteraccion = 0;
         this.contadorPausa = 0;
+        this.canal.reiniciar();
     }
 
     public void liberar() {
@@ -43,6 +45,7 @@ public class SesionJugador {
         listo = false;
         ejeX = 0f;
         ejeY = 0f;
+        canal.reiniciar();
     }
 
     public boolean registrarEntrada(long secuencia, float x, float y, int interacciones, int pausas,
@@ -68,6 +71,10 @@ public class SesionJugador {
 
     public boolean estaLibre() {
         return token == null;
+    }
+
+    public CanalConfiable getCanal() {
+        return canal;
     }
 
     public int getNumero() {
