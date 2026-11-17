@@ -77,10 +77,15 @@ public class PantallaSala extends PantallaBase {
             linea(batch, recursos.getFuenteMedia(), accion, 170f, Color.WHITE);
             linea(batch, recursos.getFuenteChica(), "La partida empieza cuando los dos jugadores están listos.", 130f, Color.LIGHT_GRAY);
         } else {
-            linea(batch, recursos.getFuenteMedia(), "¡La partida comenzó en el servidor!", 170f, Color.LIME);
+            InstantaneaPartida.DatosJugador propio = instantanea.getJugador(sesion.getNumeroJugador());
+            linea(batch, recursos.getFuenteMedia(), "Partida en curso  -  tiempo " + Math.round(instantanea.getTiempoRestante())
+                + " s  -  pedidos " + instantanea.getPedidosCompletados() + "  -  puntaje " + instantanea.getPuntaje(), 190f, Color.LIME);
+            linea(batch, recursos.getFuenteChica(), "Tu personaje en (" + Math.round(propio.getX()) + ", "
+                + Math.round(propio.getY()) + ") mirando " + propio.getDireccion() + " con " + propio.getObjeto().getEtiqueta()
+                + "  -  estados recibidos " + sesion.getInstantaneasRecibidas() + ", descartados por viejos "
+                + sesion.getInstantaneasDescartadas(), 150f, Color.WHITE);
             linea(batch, recursos.getFuenteChica(),
-                "Movete con WASD o flechas e interactuá con E: el resultado aparece en la consola del servidor.",
-                130f, Color.LIGHT_GRAY);
+                "Movete con WASD o flechas e interactuá con E: todo lo calcula el servidor.", 120f, Color.LIGHT_GRAY);
         }
         pie(batch, "ESC para salir de la sala");
         batch.end();
