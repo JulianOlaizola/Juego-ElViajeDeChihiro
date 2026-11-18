@@ -22,6 +22,7 @@ public class InstantaneaPartida {
     private boolean aguaCaliente;
     private float proporcionCaldera;
     private boolean gano;
+    private int segundosParaReconexion;
     private final DatosJugador[] jugadores = new DatosJugador[Constantes.CANTIDAD_JUGADORES];
     private final List<DatosTina> tinas = new ArrayList<DatosTina>();
 
@@ -43,6 +44,7 @@ public class InstantaneaPartida {
         campos.add(bandera(aguaCaliente));
         campos.add(decimal(proporcionCaldera));
         campos.add(bandera(gano));
+        campos.add(String.valueOf(segundosParaReconexion));
         for (DatosJugador jugador : jugadores) {
             campos.add(bandera(jugador.conectado));
             campos.add(bandera(jugador.listo));
@@ -79,6 +81,7 @@ public class InstantaneaPartida {
         instantanea.aguaCaliente = lector.bandera();
         instantanea.proporcionCaldera = lector.decimal();
         instantanea.gano = lector.bandera();
+        instantanea.segundosParaReconexion = lector.entero();
         for (DatosJugador jugador : instantanea.jugadores) {
             jugador.conectado = lector.bandera();
             jugador.listo = lector.bandera();
@@ -172,6 +175,14 @@ public class InstantaneaPartida {
         this.pedidosFallidos = pedidosFallidos;
         this.puntaje = puntaje;
         this.gano = gano;
+    }
+
+    public int getSegundosParaReconexion() {
+        return segundosParaReconexion;
+    }
+
+    public void setSegundosParaReconexion(int segundosParaReconexion) {
+        this.segundosParaReconexion = segundosParaReconexion;
     }
 
     public void setCaldera(boolean encendida, boolean caliente, float proporcion) {

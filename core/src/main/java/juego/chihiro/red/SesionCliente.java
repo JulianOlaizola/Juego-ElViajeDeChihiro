@@ -21,6 +21,7 @@ public class SesionCliente {
     private long ultimoIntentoMilis;
     private long ultimoPaqueteMilis;
     private long ultimaEntradaMilis;
+    private long inicioReconexionMilis;
     private long secuenciaEntrada;
     private InstantaneaPartida instantanea = new InstantaneaPartida();
     private boolean hayInstantanea;
@@ -65,8 +66,13 @@ public class SesionCliente {
         } else if (estado == EstadoConexion.CONECTADO) {
             enviarEntrada(ahora);
             if (ahora - ultimoPaqueteMilis > Protocolo.TIEMPO_ESPERA_MILIS) {
-                perder("El servidor dejó de responder");
+                estado = EstadoConexion.RECONECTANDO;
+                inicioReconexionMilis = ahora;
+                ultimoIntentoMilis = 0;
+                motivo = "El servidor dejó de responder";
             }
+        } else if (estado == EstadoConexion.RECONECTANDO) {
+            reintentarReconexion(ahora);
         }
     }
 
@@ -96,6 +102,17 @@ public class SesionCliente {
         intentosConexion++;
         ultimoIntentoMilis = ahora;
         cliente.enviar(new Mensaje(TipoMensaje.CONECTAR, nombreJugador, token), servidor);
+    }
+
+    private void reintentarReconexion(long ahora) {
+        if (ahora - inicioReconexionMilis > Protocolo.TIEMPO_RECONEXION_CLIENTE_MILIS) {
+            perder("No se pudo volver a conectar con el servidor");
+            return;
+        }
+        if (ahora - ultimoIntentoMilis >= Protocolo.INTERVALO_REINTENTO_RECONEXION_MILIS) {
+            ultimoIntentoMilis = ahora;
+            cliente.enviar(new Mensaje(TipoMensaje.CONECTAR, nombreJugador, token), servidor);
+        }
     }
 
     private void recibir(long ahora) {
@@ -129,6 +146,9 @@ public class SesionCliente {
                 MotivoRechazo rechazo = MotivoRechazo.desdeTexto(mensaje.campo(0));
                 estado = EstadoConexion.RECHAZADO;
                 motivo = rechazo == null ? "El servidor rechazó la conexión" : rechazo.getDescripcion();
+                break;
+            case DESCONECTAR:
+                perder(mensaje.cantidadCampos() > 0 ? mensaje.campo(0) : "El servidor cerró la conexión");
                 break;
             case ESTADO:
                 recibirInstantanea(InstantaneaPartida.desdeMensaje(mensaje));
@@ -178,7 +198,21 @@ public class SesionCliente {
     }
 
     private boolean sigueActiva() {
-        return estado == EstadoConexion.CONECTANDO || estado == EstadoConexion.CONECTADO;
+        return estado == EstadoConexion.CONECTANDO
+            || estado == EstadoConexion.CONECTADO
+            || estado == EstadoConexion.RECONECTANDO;
+    }
+
+    public boolean estaEnPartida() {
+        return estado == EstadoConexion.CONECTADO || estado == EstadoConexion.RECONECTANDO;
+    }
+
+    public int segundosReconectando() {
+        if (estado != EstadoConexion.RECONECTANDO) {
+            return 0;
+        }
+        long restante = Protocolo.TIEMPO_RECONEXION_CLIENTE_MILIS - (System.currentTimeMillis() - inicioReconexionMilis);
+        return (int) Math.max(0, restante / 1000);
     }
 
     public void setEjes(float x, float y) {
@@ -203,7 +237,7 @@ public class SesionCliente {
     }
 
     public void cerrar() {
-        if (estado == EstadoConexion.CONECTADO && servidor != null) {
+        if (estaEnPartida() && servidor != null) {
             for (int i = 0; i < 3; i++) {
                 cliente.enviar(new Mensaje(TipoMensaje.DESCONECTAR, token), servidor);
             }

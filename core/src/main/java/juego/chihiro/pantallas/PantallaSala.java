@@ -27,11 +27,11 @@ public class PantallaSala extends PantallaBase {
             return;
         }
         sesion.actualizar();
-        if (sesion.getEstado() != EstadoConexion.CONECTADO) {
+        if (!sesion.estaEnPartida()) {
             juego.cambiarPantalla(new PantallaMensaje(juego, "Se cortó la conexión", sesion.getMotivo()));
             return;
         }
-        if (sesion.getInstantanea().getFase() != FasePartida.SALA) {
+        if (sesion.getEstado() == EstadoConexion.CONECTADO && sesion.getInstantanea().getFase() != FasePartida.SALA) {
             juego.cambiarPantalla(new PantallaJuego(juego));
             return;
         }
@@ -72,6 +72,10 @@ public class PantallaSala extends PantallaBase {
         String accion = sesion.estaListo() ? "ENTER para cancelar \"listo\"" : "ENTER cuando estés listo";
         linea(batch, recursos.getFuenteMedia(), accion, 170f, Color.WHITE);
         linea(batch, recursos.getFuenteChica(), "La partida empieza cuando los dos jugadores están listos.", 130f, Color.LIGHT_GRAY);
+        if (sesion.getEstado() == EstadoConexion.RECONECTANDO) {
+            linea(batch, recursos.getFuenteMedia(), "Se perdió la señal del servidor. Reconectando... "
+                + sesion.segundosReconectando() + " s", 90f, Color.ORANGE);
+        }
         pie(batch, "ESC para salir de la sala");
         batch.end();
     }

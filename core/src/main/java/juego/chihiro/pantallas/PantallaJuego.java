@@ -96,7 +96,7 @@ public class PantallaJuego extends ScreenAdapter {
         }
 
         sesion.actualizar();
-        if (sesion.getEstado() != EstadoConexion.CONECTADO) {
+        if (!sesion.estaEnPartida()) {
             juego.cambiarPantalla(new PantallaMensaje(juego, "Se cortó la conexión", sesion.getMotivo()));
             return false;
         }
@@ -112,7 +112,7 @@ public class PantallaJuego extends ScreenAdapter {
             return false;
         }
 
-        if (estado.getFase() == FasePartida.JUGANDO) {
+        if (estado.getFase() == FasePartida.JUGANDO && sesion.getEstado() == EstadoConexion.CONECTADO) {
             sesion.setEjes(entradas.ejeHorizontalCombinado(), entradas.ejeVerticalCombinado());
             if (entradas.consumirInteraccion()) {
                 sesion.pulsarInteraccion();
@@ -133,6 +133,15 @@ public class PantallaJuego extends ScreenAdapter {
     }
 
     private boolean atenderMenusDeLaPartida(FasePartida fase) {
+        boolean sinPartidaActiva = fase == FasePartida.ESPERANDO_JUGADOR
+            || sesion.getEstado() == EstadoConexion.RECONECTANDO;
+        if (sinPartidaActiva) {
+            if (entradas.consumir(Accion.VOLVER)) {
+                juego.cambiarPantalla(new PantallaMenu(juego));
+                return true;
+            }
+            return false;
+        }
         if (fase == FasePartida.TERMINADA) {
             if (entradas.consumir(Accion.CONFIRMAR) || entradas.consumir(Accion.VOLVER)) {
                 juego.cambiarPantalla(new PantallaMenu(juego));
@@ -230,7 +239,13 @@ public class PantallaJuego extends ScreenAdapter {
 
         hud.dibujar(batch, estado, sesion.getNumeroJugador(), tiempoMensaje > 0f ? mensaje : "");
 
-        if (estado.getFase() == FasePartida.PAUSA) {
+        if (sesion.getEstado() == EstadoConexion.RECONECTANDO) {
+            dibujarVelo("Reconectando...", "Se perdió la señal del servidor. Quedan "
+                + sesion.segundosReconectando() + " segundos para recuperarla", "ESC para salir al menú");
+        } else if (estado.getFase() == FasePartida.ESPERANDO_JUGADOR) {
+            dibujarVelo("Esperando a tu compañero", "Se desconectó un jugador. Tiene "
+                + estado.getSegundosParaReconexion() + " segundos para volver", "ESC para salir al menú");
+        } else if (estado.getFase() == FasePartida.PAUSA) {
             dibujarVelo("PAUSA", "La partida está pausada para los dos jugadores",
                 "P o ESC para seguir   -   ENTER para salir al menú");
         } else if (estado.getFase() == FasePartida.TERMINADA) {
