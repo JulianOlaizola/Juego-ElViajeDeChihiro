@@ -17,6 +17,7 @@ public class SesionJugador {
     private float ejeY;
     private int contadorInteraccion;
     private int contadorPausa;
+    private int contadorPausaAtendido;
 
     public SesionJugador(int numero) {
         this.numero = numero;
@@ -34,6 +35,7 @@ public class SesionJugador {
         this.ejeY = 0f;
         this.contadorInteraccion = 0;
         this.contadorPausa = 0;
+        this.contadorPausaAtendido = 0;
         this.canal.reiniciar();
     }
 
@@ -62,6 +64,18 @@ public class SesionJugador {
         direccion = origen;
         ultimaActividadMilis = ahora;
         return true;
+    }
+
+    public boolean consumirPedidoDePausa() {
+        if (contadorPausa == contadorPausaAtendido) {
+            return false;
+        }
+        contadorPausaAtendido = contadorPausa;
+        return true;
+    }
+
+    public void descartarPedidosDePausa() {
+        contadorPausaAtendido = contadorPausa;
     }
 
     public void tocar(InetSocketAddress origen, long ahora) {

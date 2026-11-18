@@ -9,17 +9,10 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ObjectMap;
 
+import juego.chihiro.red.Efecto;
 import juego.chihiro.utiles.Constantes;
 
 public class AdministradorAudio implements Disposable {
-    public enum Efecto {
-        TOMAR,
-        ENTREGAR,
-        PEDIDO_COMPLETO,
-        ERROR,
-        LIMPIAR
-    }
-
     private static final String CLAVE_MUSICA = "volumenMusica";
     private static final String CLAVE_EFECTOS = "volumenEfectos";
     private static final String CLAVE_SILENCIO = "silenciado";
@@ -51,7 +44,7 @@ public class AdministradorAudio implements Disposable {
     }
 
     public void reproducir(Efecto efecto) {
-        if (silenciado) {
+        if (silenciado || efecto == null || efecto == Efecto.NINGUNO) {
             return;
         }
         Sound sonido = efectos.get(efecto);
