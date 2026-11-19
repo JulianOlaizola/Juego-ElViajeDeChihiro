@@ -145,6 +145,13 @@ public class Partida implements Disposable {
             ganoLaPartida ? Efecto.PEDIDO_COMPLETO : Efecto.ERROR);
     }
 
+    public void forzarFin() {
+        if (!terminada) {
+            tiempoRestante = 0f;
+            terminar(false);
+        }
+    }
+
     private void interactuar(JugadorServidor jugador) {
         ObjetivoInteraccion objetivo = buscarObjetivo(jugador);
         if (objetivo.companero != null) {
