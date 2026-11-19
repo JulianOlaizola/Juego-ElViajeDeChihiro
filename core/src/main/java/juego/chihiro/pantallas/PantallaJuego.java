@@ -20,8 +20,6 @@ import juego.chihiro.hud.Hud;
 import juego.chihiro.mundo.EstadoTina;
 import juego.chihiro.mundo.MapaCasaBanos;
 import juego.chihiro.mundo.ObjetoInteractivo;
-import juego.chihiro.audio.AdministradorAudio;
-import juego.chihiro.red.Efecto;
 import juego.chihiro.red.EstadoConexion;
 import juego.chihiro.red.EventoRed;
 import juego.chihiro.red.FasePartida;
@@ -36,7 +34,6 @@ public class PantallaJuego extends ScreenAdapter {
     private final Recursos recursos;
     private final ControladorEntradas entradas;
     private final SesionCliente sesion;
-    private final AdministradorAudio audio;
 
     private final OrthographicCamera camaraMundo = new OrthographicCamera();
     private final Viewport vistaMundo;
@@ -60,7 +57,6 @@ public class PantallaJuego extends ScreenAdapter {
         this.recursos = juego.getRecursos();
         this.entradas = juego.getEntradas();
         this.sesion = juego.getSesion();
-        this.audio = juego.getAudio();
 
         vistaMundo = new FitViewport(Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA, camaraMundo);
         vistaHud = new FitViewport(Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA, camaraHud);
@@ -96,7 +92,7 @@ public class PantallaJuego extends ScreenAdapter {
         }
 
         sesion.actualizar();
-        if (!sesion.estaEnPartida()) {
+        if (sesion.getEstado() != EstadoConexion.CONECTADO) {
             juego.cambiarPantalla(new PantallaMensaje(juego, "Se cortó la conexión", sesion.getMotivo()));
             return false;
         }
@@ -108,11 +104,13 @@ public class PantallaJuego extends ScreenAdapter {
             return false;
         }
 
-        if (atenderMenusDeLaPartida(estado.getFase())) {
+        if (entradas.consumir(Accion.VOLVER)
+            || (estado.getFase() == FasePartida.TERMINADA && entradas.consumir(Accion.CONFIRMAR))) {
+            juego.cambiarPantalla(new PantallaMenu(juego));
             return false;
         }
 
-        if (estado.getFase() == FasePartida.JUGANDO && sesion.getEstado() == EstadoConexion.CONECTADO) {
+        if (estado.getFase() == FasePartida.JUGANDO) {
             sesion.setEjes(entradas.ejeHorizontalCombinado(), entradas.ejeVerticalCombinado());
             if (entradas.consumirInteraccion()) {
                 sesion.pulsarInteraccion();
@@ -132,33 +130,6 @@ public class PantallaJuego extends ScreenAdapter {
         return true;
     }
 
-    private boolean atenderMenusDeLaPartida(FasePartida fase) {
-        boolean sinPartidaActiva = fase == FasePartida.ESPERANDO_JUGADOR
-            || sesion.getEstado() == EstadoConexion.RECONECTANDO;
-        if (sinPartidaActiva) {
-            if (entradas.consumir(Accion.VOLVER)) {
-                juego.cambiarPantalla(new PantallaMenu(juego));
-                return true;
-            }
-            return false;
-        }
-        if (fase == FasePartida.TERMINADA) {
-            if (entradas.consumir(Accion.CONFIRMAR) || entradas.consumir(Accion.VOLVER)) {
-                juego.cambiarPantalla(new PantallaMenu(juego));
-                return true;
-            }
-            return false;
-        }
-        if (entradas.consumir(Accion.PAUSA)) {
-            sesion.pedirPausa();
-        }
-        if (fase == FasePartida.PAUSA && entradas.consumir(Accion.CONFIRMAR)) {
-            juego.cambiarPantalla(new PantallaMenu(juego));
-            return true;
-        }
-        return false;
-    }
-
     private void atenderEventos(float delta) {
         if (tiempoMensaje > 0f) {
             tiempoMensaje -= delta;
@@ -168,17 +139,9 @@ public class PantallaJuego extends ScreenAdapter {
             switch (evento.getTipo()) {
                 case AVISO:
                     mostrarMensaje(evento.dato(0));
-                    audio.reproducir(Efecto.desdeTexto(evento.dato(1)));
-                    break;
-                case INICIO_PARTIDA:
-                    mostrarMensaje("¡Abrió la casa de baños! Atiendan a los espíritus");
-                    break;
-                case FIN_PARTIDA:
-                    audio.reproducir("1".equals(evento.dato(0)) ? Efecto.PEDIDO_COMPLETO : Efecto.ERROR);
                     break;
                 case JUGADOR_DESCONECTADO:
                     mostrarMensaje("El jugador " + evento.dato(0) + " se desconectó");
-                    audio.reproducir(Efecto.ERROR);
                     break;
                 case JUGADOR_RECONECTADO:
                     mostrarMensaje("El jugador " + evento.dato(0) + " volvió a la partida");
@@ -239,76 +202,33 @@ public class PantallaJuego extends ScreenAdapter {
 
         hud.dibujar(batch, estado, sesion.getNumeroJugador(), tiempoMensaje > 0f ? mensaje : "");
 
-        if (sesion.getEstado() == EstadoConexion.RECONECTANDO) {
-            dibujarVelo("Reconectando...", "Se perdió la señal del servidor. Quedan "
-                + sesion.segundosReconectando() + " segundos para recuperarla", "ESC para salir al menú");
-        } else if (estado.getFase() == FasePartida.ESPERANDO_JUGADOR) {
-            dibujarVelo("Esperando a tu compañero", "Se desconectó un jugador. Tiene "
-                + estado.getSegundosParaReconexion() + " segundos para volver", "ESC para salir al menú");
-        } else if (estado.getFase() == FasePartida.PAUSA) {
-            dibujarVelo("PAUSA", "La partida está pausada para los dos jugadores",
-                "P o ESC para seguir   -   ENTER para salir al menú");
-        } else if (estado.getFase() == FasePartida.TERMINADA) {
-            dibujarResultado(estado);
+        if (estado.getFase() == FasePartida.TERMINADA) {
+            dibujarVelo(estado.gano() ? "¡Turno completado!" : "Se cerró la casa de baños",
+                "Puntaje " + estado.getPuntaje() + "   -   ENTER para volver al menú");
         }
     }
 
-    private void dibujarResultado(InstantaneaPartida estado) {
-        SpriteBatch batch = comenzarVelo();
-        float centro = Constantes.ALTO_VISTA / 2f;
-        recursos.getFuenteGrande().setColor(estado.gano() ? Color.GOLD : Color.WHITE);
-        recursos.getFuenteGrande().draw(batch, estado.gano() ? "¡Turno completado!" : "Se cerró la casa de baños",
-            0f, centro + 120f, Constantes.ANCHO_VISTA, Align.center, false);
-        recursos.getFuenteGrande().setColor(Color.WHITE);
-        recursos.getFuenteGrande().draw(batch, "Puntaje " + estado.getPuntaje(),
-            0f, centro + 50f, Constantes.ANCHO_VISTA, Align.center, false);
-        recursos.getFuenteMedia().draw(batch, "Pedidos atendidos: " + estado.getPedidosCompletados()
-                + " de " + Constantes.PEDIDOS_PARA_GANAR + "   -   Espíritus que se fueron: " + estado.getPedidosFallidos(),
-            0f, centro - 10f, Constantes.ANCHO_VISTA, Align.center, false);
-        recursos.getFuenteMedia().draw(batch, "Tiempo sobrante: " + Math.round(estado.getTiempoRestante()) + " s",
-            0f, centro - 50f, Constantes.ANCHO_VISTA, Align.center, false);
-        recursos.getFuenteChica().setColor(Color.LIGHT_GRAY);
-        recursos.getFuenteChica().draw(batch, "ENTER o ESC para volver al menú",
-            0f, centro - 120f, Constantes.ANCHO_VISTA, Align.center, false);
-        recursos.getFuenteChica().setColor(Color.WHITE);
-        batch.end();
-    }
-
-    private void dibujarVelo(String titulo, String detalle, String pie) {
-        SpriteBatch batch = comenzarVelo();
-        recursos.getFuenteGrande().draw(batch, titulo, 0f, Constantes.ALTO_VISTA / 2f + 40f,
-            Constantes.ANCHO_VISTA, Align.center, false);
-        recursos.getFuenteMedia().draw(batch, detalle, 0f, Constantes.ALTO_VISTA / 2f - 20f,
-            Constantes.ANCHO_VISTA, Align.center, false);
-        recursos.getFuenteChica().setColor(Color.LIGHT_GRAY);
-        recursos.getFuenteChica().draw(batch, pie, 0f, Constantes.ALTO_VISTA / 2f - 70f,
-            Constantes.ANCHO_VISTA, Align.center, false);
-        recursos.getFuenteChica().setColor(Color.WHITE);
-        batch.end();
-    }
-
-    private SpriteBatch comenzarVelo() {
+    private void dibujarVelo(String titulo, String detalle) {
         SpriteBatch batch = juego.getBatch();
         vistaHud.apply();
         batch.setProjectionMatrix(camaraHud.combined);
         batch.begin();
+
         batch.setColor(0f, 0f, 0f, 0.62f);
         batch.draw(recursos.getPixel(), 0f, 0f, Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA);
         batch.setColor(Color.WHITE);
-        return batch;
+
+        recursos.getFuenteGrande().draw(batch, titulo, 0f, Constantes.ALTO_VISTA / 2f + 40f,
+            Constantes.ANCHO_VISTA, Align.center, false);
+        recursos.getFuenteMedia().draw(batch, detalle, 0f, Constantes.ALTO_VISTA / 2f - 20f,
+            Constantes.ANCHO_VISTA, Align.center, false);
+        batch.end();
     }
 
     @Override
     public void resize(int ancho, int alto) {
         vistaMundo.update(ancho, alto, false);
         vistaHud.update(ancho, alto, true);
-    }
-
-    @Override
-    public void pause() {
-        if (sesion.getInstantanea().getFase() == FasePartida.JUGANDO) {
-            sesion.pedirPausa();
-        }
     }
 
     @Override

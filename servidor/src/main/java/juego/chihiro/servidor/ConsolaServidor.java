@@ -41,8 +41,12 @@ public class ConsolaServidor implements Runnable {
             case "estado":
                 Gdx.app.postRunnable(juego::imprimirEstado);
                 return true;
+            case "terminar":
+                Gdx.app.postRunnable(juego::terminarPartida);
+                return true;
             case "ayuda":
-                Registro.info("estado: muestra los paquetes recibidos y enviados | salir: cierra el servidor");
+                Registro.info("estado: muestra jugadores, partida y paquetes | terminar: corta la partida actual"
+                    + " para probar la revancha | salir: cierra el servidor avisando a los jugadores");
                 return true;
             default:
                 Registro.aviso("Comando desconocido: " + comando + ". Escribí 'ayuda'.");
