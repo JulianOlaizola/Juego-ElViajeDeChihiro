@@ -118,6 +118,7 @@ www-test/
 /shared/nbbuild/
 
 /dist/
+/entrega/
 /android/dist/
 /core/dist/
 /lwjgl2/dist/
