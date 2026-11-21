@@ -39,7 +39,8 @@ public class Hud {
         this.camara = camara;
     }
 
-    public void dibujar(SpriteBatch batch, InstantaneaPartida estado, int jugadorLocal, String mensaje) {
+    public void dibujar(SpriteBatch batch, InstantaneaPartida estado, int jugadorLocal, String mensaje,
+                        long latenciaMilis) {
         vista.apply();
         batch.setProjectionMatrix(camara.combined);
         batch.begin();
@@ -50,6 +51,7 @@ public class Hud {
         dibujarManos(batch, estado, 1, jugadorLocal, MARGEN);
         dibujarManos(batch, estado, 2, jugadorLocal, Constantes.ANCHO_VISTA - MARGEN - ANCHO_TARJETA);
         dibujarMensaje(batch, mensaje);
+        dibujarLatencia(batch, latenciaMilis);
 
         batch.end();
     }
@@ -177,6 +179,14 @@ public class Hud {
         BitmapFont fuente = recursos.getFuenteMedia();
         fuente.setColor(Color.WHITE);
         fuente.draw(batch, mensaje, x, y + alto - 8f, ancho, Align.center, false);
+    }
+
+    private void dibujarLatencia(SpriteBatch batch, long latenciaMilis) {
+        String texto = latenciaMilis < 0 ? "PING midiendo..." : "PING " + latenciaMilis + " ms";
+        BitmapFont fuente = recursos.getFuenteChica();
+        fuente.setColor(latenciaMilis > 150 ? NARANJA : Color.LIGHT_GRAY);
+        fuente.draw(batch, texto, 0f, MARGEN + 28f, Constantes.ANCHO_VISTA, Align.center, false);
+        fuente.setColor(Color.WHITE);
     }
 
     private void panel(SpriteBatch batch, float x, float y, float ancho, float alto, Color color) {

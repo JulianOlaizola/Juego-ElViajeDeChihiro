@@ -47,7 +47,8 @@ public class PantallaSala extends PantallaBase {
         InstantaneaPartida instantanea = sesion.getInstantanea();
         SpriteBatch batch = comenzarDibujo();
         titulo(batch, "Sala de espera");
-        linea(batch, recursos.getFuenteChica(), sesion.getDescripcionServidor(), 440f, Color.LIGHT_GRAY);
+        String ping = sesion.getLatenciaMilis() < 0 ? "" : "   -   ping " + sesion.getLatenciaMilis() + " ms";
+        linea(batch, recursos.getFuenteChica(), sesion.getDescripcionServidor() + ping, 440f, Color.LIGHT_GRAY);
         linea(batch, recursos.getFuenteMedia(), "Sos el jugador " + sesion.getNumeroJugador(), 400f, Color.GOLD);
 
         float y = 330f;

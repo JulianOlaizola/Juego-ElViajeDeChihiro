@@ -23,8 +23,13 @@ public final class Protocolo {
     public static final long TIEMPO_RECONEXION_SERVIDOR_MILIS = 30000;
     public static final long TIEMPO_RECONEXION_CLIENTE_MILIS = 20000;
     public static final long INTERVALO_REINTENTO_RECONEXION_MILIS = 1000;
+    public static final long INTERVALO_PING_MILIS = 1000;
 
     private Protocolo() {
+    }
+
+    public static void preferirIPv4() {
+        System.setProperty("java.net.preferIPv4Stack", "true");
     }
 
     public static int validarPuerto(int puerto) {

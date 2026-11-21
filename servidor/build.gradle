@@ -30,7 +30,7 @@ tasks.named('run', JavaExec) {
 }
 
 jar {
-  archiveFileName = "ElViajeDeChihiro-Servidor-${projectVersion}.jar"
+  archiveFileName = "ElViajeDeChihiro-Servidor.jar"
   duplicatesStrategy = DuplicatesStrategy.EXCLUDE
   dependsOn configurations.runtimeClasspath
   from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
