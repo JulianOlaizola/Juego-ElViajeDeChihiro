@@ -3,12 +3,14 @@ package juego.chihiro.lwjgl3;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import juego.chihiro.Main;
+import juego.chihiro.red.Protocolo;
 import juego.chihiro.utiles.Constantes;
 
 public class Lwjgl3Launcher {
     private static final String DIRECCION_POR_DEFECTO = "127.0.0.1";
 
     public static void main(String[] args) {
+        Protocolo.preferirIPv4();
         if (StartupHelper.startNewJvmIfRequired()) {
             return;
         }

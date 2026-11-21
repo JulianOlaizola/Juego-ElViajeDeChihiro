@@ -22,6 +22,8 @@ public class SesionCliente {
     private long ultimoPaqueteMilis;
     private long ultimaEntradaMilis;
     private long inicioReconexionMilis;
+    private long ultimoPingMilis;
+    private long latenciaMilis = -1;
     private long secuenciaEntrada;
     private InstantaneaPartida instantanea = new InstantaneaPartida();
     private boolean hayInstantanea;
@@ -65,6 +67,7 @@ public class SesionCliente {
             reintentarConexion(ahora);
         } else if (estado == EstadoConexion.CONECTADO) {
             enviarEntrada(ahora);
+            medirLatencia(ahora);
             if (ahora - ultimoPaqueteMilis > Protocolo.TIEMPO_ESPERA_MILIS) {
                 estado = EstadoConexion.RECONECTANDO;
                 inicioReconexionMilis = ahora;
@@ -102,6 +105,22 @@ public class SesionCliente {
         intentosConexion++;
         ultimoIntentoMilis = ahora;
         cliente.enviar(new Mensaje(TipoMensaje.CONECTAR, nombreJugador, token), servidor);
+    }
+
+    private void medirLatencia(long ahora) {
+        if (ahora - ultimoPingMilis < Protocolo.INTERVALO_PING_MILIS) {
+            return;
+        }
+        ultimoPingMilis = ahora;
+        cliente.enviar(new Mensaje(TipoMensaje.PING, String.valueOf(System.nanoTime())), servidor);
+    }
+
+    private void registrarPong(Mensaje pong) throws MensajeInvalidoException {
+        long medida = (System.nanoTime() - pong.campoLargo(0)) / 1_000_000L;
+        if (medida < 0) {
+            return;
+        }
+        latenciaMilis = latenciaMilis < 0 ? medida : (latenciaMilis * 3 + medida) / 4;
     }
 
     private void reintentarReconexion(long ahora) {
@@ -152,6 +171,9 @@ public class SesionCliente {
                 break;
             case ESTADO:
                 recibirInstantanea(InstantaneaPartida.desdeMensaje(mensaje));
+                break;
+            case PONG:
+                registrarPong(mensaje);
                 break;
             case EVENTO:
                 EventoRed evento = EventoRed.desdeMensaje(mensaje);
@@ -268,6 +290,10 @@ public class SesionCliente {
 
     public boolean tieneInstantanea() {
         return hayInstantanea;
+    }
+
+    public long getLatenciaMilis() {
+        return latenciaMilis;
     }
 
     public EventoRed siguienteEvento() {
