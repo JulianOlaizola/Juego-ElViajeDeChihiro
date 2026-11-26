@@ -16,6 +16,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import juego.chihiro.Main;
+import juego.chihiro.mundo.Nivel;
 import juego.chihiro.utiles.Constantes;
 
 public class PantallaCarga extends ScreenAdapter {
@@ -43,8 +44,8 @@ public class PantallaCarga extends ScreenAdapter {
         assets.load(Constantes.RUTA_OBJETOS, Texture.class);
         assets.load(Constantes.RUTA_LOGO, Texture.class);
         assets.load(Constantes.RUTA_PIXEL, Texture.class);
-        for (String rutaMapa : Constantes.RUTAS_MAPAS) {
-            assets.load(rutaMapa, TiledMap.class);
+        for (Nivel nivel : Nivel.values()) {
+            assets.load(nivel.getRutaMapa(), TiledMap.class);
         }
         assets.load(Constantes.RUTA_MUSICA, Music.class);
         assets.load(Constantes.RUTA_TOMAR, Sound.class);

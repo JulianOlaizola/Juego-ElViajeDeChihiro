@@ -8,11 +8,6 @@ public final class Constantes {
     public static final float ANCHO_VISTA = 960f;
     public static final float ALTO_VISTA = 540f;
 
-    public static final String[] RUTAS_MAPAS = {
-        "mapas/salon.tmx",
-        "mapas/nivel2.tmx",
-        "mapas/nivel3.tmx"
-    };
     public static final int TAM_TILE = 32;
     public static final String CAPA_PISO = "piso";
     public static final String CAPA_DECORACION = "decoracion";
@@ -56,12 +51,8 @@ public final class Constantes {
 
     public static final float SUAVIZADO_CAMARA = 5f;
 
-    public static final float DURACION_NIVEL = 180f;
-    public static final int PEDIDOS_PARA_GANAR = 5;
-    public static final int FALLOS_PARA_PERDER = 3;
-    public static final int MAX_PEDIDOS_ACTIVOS = 2;
     public static final float ESPERA_PRIMER_PEDIDO = 2f;
-    public static final float ESPERA_ENTRE_PEDIDOS = 6f;
+    public static final float DURACION_PRESENTACION_NIVEL = 3f;
     public static final float INTERVALO_AVISO_TINAS_SUCIAS = 8f;
     public static final float SOLAPE_ESPIRITU_EN_TINA = 8f;
     public static final float TIEMPO_CALENTAR_CALDERA = 3f;

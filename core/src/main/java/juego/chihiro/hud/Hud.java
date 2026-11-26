@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 import juego.chihiro.audio.AdministradorAudio;
 import juego.chihiro.mundo.EstadoTina;
+import juego.chihiro.mundo.Nivel;
 import juego.chihiro.mundo.ObjetoEnMano;
 import juego.chihiro.red.InstantaneaPartida;
 import juego.chihiro.utiles.Constantes;
@@ -65,21 +66,25 @@ public class Hud {
         BitmapFont fuente = recursos.getFuenteMedia();
         float linea = y + ALTO_BARRA_SUPERIOR / 2f + fuente.getCapHeight() / 2f;
 
+        Nivel nivel = estado.getNivel();
+        fuente.setColor(Color.GOLD);
+        fuente.draw(batch, "NIVEL " + nivel.getNumero(), MARGEN, linea);
+
         fuente.setColor(estado.getTiempoRestante() <= 30f ? ROJO : Color.WHITE);
-        fuente.draw(batch, "TIEMPO " + formatearTiempo(estado.getTiempoRestante()), MARGEN, linea);
+        fuente.draw(batch, formatearTiempo(estado.getTiempoRestante()), 118f, linea);
 
         fuente.setColor(Color.WHITE);
         fuente.draw(batch, "PEDIDOS " + estado.getPedidosCompletados()
-            + "/" + Constantes.PEDIDOS_PARA_GANAR, 196f, linea);
+            + "/" + nivel.getPedidosParaGanar(), 210f, linea);
 
         fuente.setColor(estado.getPedidosFallidos() > 0 ? ROJO : Color.WHITE);
         fuente.draw(batch, "FALLOS " + estado.getPedidosFallidos()
-            + "/" + Constantes.FALLOS_PARA_PERDER, 400f, linea);
+            + "/" + nivel.getFallosParaPerder(), 380f, linea);
 
         fuente.setColor(Color.WHITE);
-        fuente.draw(batch, "PUNTAJE " + estado.getPuntaje(), 570f, linea);
+        fuente.draw(batch, "PUNTAJE " + estado.getPuntajeTotal(), 540f, linea);
         fuente.setColor(audio.estaSilenciado() ? Color.LIGHT_GRAY : Color.WHITE);
-        fuente.draw(batch, audio.describirVolumen(), 780f, linea);
+        fuente.draw(batch, audio.describirVolumen(), 800f, linea);
         fuente.setColor(Color.WHITE);
     }
 

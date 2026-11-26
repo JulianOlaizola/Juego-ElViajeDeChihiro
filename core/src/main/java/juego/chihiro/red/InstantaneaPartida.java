@@ -5,6 +5,7 @@ import java.util.List;
 
 import juego.chihiro.entidades.Direccion;
 import juego.chihiro.mundo.EstadoTina;
+import juego.chihiro.mundo.Nivel;
 import juego.chihiro.mundo.ObjetoEnMano;
 import juego.chihiro.mundo.TipoEspiritu;
 import juego.chihiro.utiles.Constantes;
@@ -15,7 +16,9 @@ public class InstantaneaPartida {
 
     private long secuencia;
     private FasePartida fase = FasePartida.SALA;
-    private float tiempoRestante = Constantes.DURACION_NIVEL;
+    private Nivel nivel = Nivel.SALON;
+    private int puntajeAcumulado;
+    private float tiempoRestante = Nivel.SALON.getDuracion();
     private int pedidosCompletados;
     private int pedidosFallidos;
     private int puntaje;
@@ -37,6 +40,8 @@ public class InstantaneaPartida {
         List<String> campos = new ArrayList<String>();
         campos.add(String.valueOf(secuencia));
         campos.add(fase.name());
+        campos.add(String.valueOf(nivel.ordinal()));
+        campos.add(String.valueOf(puntajeAcumulado));
         campos.add(decimal(tiempoRestante));
         campos.add(String.valueOf(pedidosCompletados));
         campos.add(String.valueOf(pedidosFallidos));
@@ -76,6 +81,8 @@ public class InstantaneaPartida {
             throw new MensajeInvalidoException("Fase de partida desconocida");
         }
         instantanea.fase = fase;
+        instantanea.nivel = elemento(Nivel.values(), lector.entero());
+        instantanea.puntajeAcumulado = lector.entero();
         instantanea.tiempoRestante = lector.decimal();
         instantanea.pedidosCompletados = lector.entero();
         instantanea.pedidosFallidos = lector.entero();
@@ -140,6 +147,23 @@ public class InstantaneaPartida {
 
     public void setFase(FasePartida fase) {
         this.fase = fase;
+    }
+
+    public Nivel getNivel() {
+        return nivel;
+    }
+
+    public int getPuntajeAcumulado() {
+        return puntajeAcumulado;
+    }
+
+    public int getPuntajeTotal() {
+        return puntajeAcumulado + puntaje;
+    }
+
+    public void setNivel(Nivel nivel, int puntajeAcumulado) {
+        this.nivel = nivel;
+        this.puntajeAcumulado = puntajeAcumulado;
     }
 
     public float getTiempoRestante() {

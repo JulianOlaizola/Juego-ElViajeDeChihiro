@@ -22,6 +22,7 @@ import juego.chihiro.entradas.ControladorEntradas;
 import juego.chihiro.hud.Hud;
 import juego.chihiro.mundo.EstadoTina;
 import juego.chihiro.mundo.MapaCasaBanos;
+import juego.chihiro.mundo.Nivel;
 import juego.chihiro.mundo.ObjetoInteractivo;
 import juego.chihiro.mundo.TipoInteractivo;
 import juego.chihiro.audio.AdministradorAudio;
@@ -47,6 +48,7 @@ public class PantallaJuego extends ScreenAdapter {
     private final OrthographicCamera camaraHud = new OrthographicCamera();
     private final Viewport vistaHud;
 
+    private final Nivel nivel;
     private final MapaCasaBanos mapa;
     private final OrthogonalTiledMapRenderer renderizadorMapa;
     private final Jugador[] jugadores = new Jugador[Constantes.CANTIDAD_JUGADORES];
@@ -60,6 +62,7 @@ public class PantallaJuego extends ScreenAdapter {
     private String mensaje = "";
     private float tiempoMensaje;
     private float tiempoVapor;
+    private float tiempoPresentacion;
 
     public PantallaJuego(Main juego) {
         this.juego = juego;
@@ -71,7 +74,8 @@ public class PantallaJuego extends ScreenAdapter {
         vistaMundo = new FitViewport(Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA, camaraMundo);
         vistaHud = new FitViewport(Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA, camaraHud);
 
-        mapa = new MapaCasaBanos(juego.getAssets(), Constantes.RUTAS_MAPAS[0]);
+        nivel = sesion.getInstantanea().getNivel();
+        mapa = new MapaCasaBanos(juego.getAssets(), nivel.getRutaMapa());
         renderizadorMapa = new OrthogonalTiledMapRenderer(mapa.getMapa(), 1f, juego.getBatch());
 
         for (int i = 0; i < jugadores.length; i++) {
@@ -117,12 +121,16 @@ public class PantallaJuego extends ScreenAdapter {
             return false;
         }
 
-        atenderEventos(delta);
         InstantaneaPartida estado = sesion.getInstantanea();
         if (estado.getFase() == FasePartida.SALA) {
             juego.cambiarPantalla(new PantallaSala(juego));
             return false;
         }
+        if (estado.getNivel() != nivel) {
+            juego.cambiarPantalla(new PantallaJuego(juego));
+            return false;
+        }
+        atenderEventos(delta);
 
         if (atenderMenusDeLaPartida(estado.getFase())) {
             return false;
@@ -211,6 +219,9 @@ public class PantallaJuego extends ScreenAdapter {
         if (tiempoMensaje > 0f) {
             tiempoMensaje -= delta;
         }
+        if (tiempoPresentacion > 0f) {
+            tiempoPresentacion -= delta;
+        }
         EventoRed evento;
         while ((evento = sesion.siguienteEvento()) != null) {
             switch (evento.getTipo()) {
@@ -219,7 +230,8 @@ public class PantallaJuego extends ScreenAdapter {
                     audio.reproducir(Efecto.desdeTexto(evento.dato(1)));
                     break;
                 case INICIO_PARTIDA:
-                    mostrarMensaje("¡Abrió la casa de baños! Atiendan a los espíritus");
+                    mostrarMensaje("¡Abrió la casa de baños! Atiendan " + nivel.getPedidosParaGanar() + " espíritus");
+                    tiempoPresentacion = Constantes.DURACION_PRESENTACION_NIVEL;
                     camaraUbicada = false;
                     break;
                 case FIN_PARTIDA:
@@ -291,6 +303,10 @@ public class PantallaJuego extends ScreenAdapter {
         hud.dibujar(batch, estado, sesion.getNumeroJugador(), tiempoMensaje > 0f ? mensaje : "",
             sesion.getLatenciaMilis());
 
+        if (tiempoPresentacion > 0f && estado.getFase() == FasePartida.JUGANDO) {
+            dibujarPresentacion();
+        }
+
         if (sesion.getEstado() == EstadoConexion.RECONECTANDO) {
             dibujarVelo("Reconectando...", "Se perdió la señal del servidor. Quedan "
                 + sesion.segundosReconectando() + " segundos para recuperarla", "ESC para salir al menú");
@@ -305,21 +321,57 @@ public class PantallaJuego extends ScreenAdapter {
         }
     }
 
+    private void dibujarPresentacion() {
+        SpriteBatch batch = juego.getBatch();
+        vistaHud.apply();
+        batch.setProjectionMatrix(camaraHud.combined);
+        batch.begin();
+        float alfa = Math.min(1f, tiempoPresentacion);
+        float centro = Constantes.ALTO_VISTA / 2f + 60f;
+        batch.setColor(0f, 0f, 0f, 0.55f * alfa);
+        batch.draw(recursos.getPixel(), 0f, centro - 70f, Constantes.ANCHO_VISTA, 120f);
+        batch.setColor(Color.WHITE);
+        recursos.getFuenteGrande().setColor(1f, 0.84f, 0f, alfa);
+        recursos.getFuenteGrande().draw(batch, "Nivel " + nivel.getNumero(), 0f, centro + 30f,
+            Constantes.ANCHO_VISTA, Align.center, false);
+        recursos.getFuenteMedia().setColor(1f, 1f, 1f, alfa);
+        recursos.getFuenteMedia().draw(batch, nivel.getNombre() + "  -  atiendan " + nivel.getPedidosParaGanar()
+            + " espíritus", 0f, centro - 22f, Constantes.ANCHO_VISTA, Align.center, false);
+        recursos.getFuenteGrande().setColor(Color.WHITE);
+        recursos.getFuenteMedia().setColor(Color.WHITE);
+        batch.end();
+    }
+
+    private String tituloResultado(InstantaneaPartida estado) {
+        if (!estado.gano()) {
+            return "Se cerró la casa de baños";
+        }
+        return nivel.esElUltimo() ? "¡Sobrevivieron a la noche!" : "¡Nivel " + nivel.getNumero() + " superado!";
+    }
+
+    private String textoDelVoto(InstantaneaPartida estado) {
+        if (!estado.gano()) {
+            return "Reintentar el nivel " + nivel.getNumero() + ":";
+        }
+        return nivel.esElUltimo() ? "Otra noche desde el nivel 1:" : "Pasar al nivel " + nivel.siguiente().getNumero() + ":";
+    }
+
     private void dibujarResultado(InstantaneaPartida estado) {
         SpriteBatch batch = comenzarVelo();
         float centro = Constantes.ALTO_VISTA / 2f;
         recursos.getFuenteGrande().setColor(estado.gano() ? Color.GOLD : Color.WHITE);
-        recursos.getFuenteGrande().draw(batch, estado.gano() ? "¡Turno completado!" : "Se cerró la casa de baños",
+        recursos.getFuenteGrande().draw(batch, tituloResultado(estado),
             0f, centro + 120f, Constantes.ANCHO_VISTA, Align.center, false);
         recursos.getFuenteGrande().setColor(Color.WHITE);
-        recursos.getFuenteGrande().draw(batch, "Puntaje " + estado.getPuntaje(),
+        recursos.getFuenteGrande().draw(batch, "Puntaje del nivel " + estado.getPuntaje(),
             0f, centro + 50f, Constantes.ANCHO_VISTA, Align.center, false);
         recursos.getFuenteMedia().draw(batch, "Pedidos atendidos: " + estado.getPedidosCompletados()
-                + " de " + Constantes.PEDIDOS_PARA_GANAR + "   -   Espíritus que se fueron: " + estado.getPedidosFallidos(),
+                + " de " + nivel.getPedidosParaGanar() + "   -   Espíritus que se fueron: " + estado.getPedidosFallidos(),
             0f, centro - 10f, Constantes.ANCHO_VISTA, Align.center, false);
-        recursos.getFuenteMedia().draw(batch, "Tiempo sobrante: " + Math.round(estado.getTiempoRestante()) + " s",
+        recursos.getFuenteMedia().draw(batch, "Tiempo sobrante: " + Math.round(estado.getTiempoRestante())
+                + " s   -   Puntaje total: " + estado.getPuntajeTotal(),
             0f, centro - 50f, Constantes.ANCHO_VISTA, Align.center, false);
-        StringBuilder votos = new StringBuilder("Revancha:");
+        StringBuilder votos = new StringBuilder(textoDelVoto(estado));
         for (int numero = 1; numero <= Constantes.CANTIDAD_JUGADORES; numero++) {
             votos.append("   jugador ").append(numero).append(estado.estaListo(numero) ? " listo" : " pensando...");
         }
@@ -328,7 +380,7 @@ public class PantallaJuego extends ScreenAdapter {
             0f, centro - 100f, Constantes.ANCHO_VISTA, Align.center, false);
         recursos.getFuenteMedia().setColor(Color.WHITE);
         recursos.getFuenteChica().setColor(Color.LIGHT_GRAY);
-        recursos.getFuenteChica().draw(batch, (sesion.estaListo() ? "ENTER para cancelar tu voto" : "ENTER para jugar otra vez")
+        recursos.getFuenteChica().draw(batch, (sesion.estaListo() ? "ENTER para cancelar tu voto" : "ENTER para votar")
                 + "   -   ESC para volver al menú",
             0f, centro - 140f, Constantes.ANCHO_VISTA, Align.center, false);
         recursos.getFuenteChica().setColor(Color.WHITE);
