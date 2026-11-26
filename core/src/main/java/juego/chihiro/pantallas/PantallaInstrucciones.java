@@ -24,13 +24,15 @@ public class PantallaInstrucciones extends ScreenAdapter {
         "1. Encendé la caldera y esperá a que el agua se caliente.",
         "2. Juntá sales en el almacén y llená el balde en la caldera.",
         "3. Entregá las dos cosas en la tina que tiene el pedido.",
-        "4. La tina queda sucia: limpiala y tirá la suciedad en el depósito.",
+        "4. La tina queda sucia (se ve la mancha): limpiala con las manos libres y tirá la suciedad en el depósito.",
+        "Si todas las tinas están sucias no entran más espíritus: ¡limpien rápido!",
         "El depósito sirve para tirar cualquier cosa que lleves en la mano.",
+        "Mirando a tu compañero e interactuando, le pasás lo que llevás o se lo sacás.",
         "",
-        "Jugador 1:  W A S D para moverse  -  E para interactuar",
-        "Jugador 2:  flechas para moverse  -  SHIFT derecho para interactuar",
+        "Cada jugador juega en su computadora: W A S D o flechas para moverse, E o SHIFT derecho para interactuar.",
+        "El servidor se abre aparte (java -jar ElViajeDeChihiro-Servidor.jar) y los dos se conectan desde el menú.",
         "",
-        "P o ESC: pausa   -   M: silencio   -   + / -: volumen   -   F1: ver colisiones"
+        "P o ESC: pausa para los dos   -   M: silencio   -   + / -: volumen   -   F1: ver colisiones"
     };
 
     private final Main juego;
@@ -65,20 +67,20 @@ public class PantallaInstrucciones extends ScreenAdapter {
 
         recursos.getFuenteGrande().setColor(Color.GOLD);
         recursos.getFuenteGrande().draw(batch, "Instrucciones", 0f, Constantes.ALTO_VISTA - 40f,
-                                        Constantes.ANCHO_VISTA, Align.center, false);
+            Constantes.ANCHO_VISTA, Align.center, false);
         recursos.getFuenteGrande().setColor(Color.WHITE);
 
         recursos.getFuenteChica().setColor(Color.WHITE);
         float y = Constantes.ALTO_VISTA - 110f;
         for (String linea : LINEAS) {
             recursos.getFuenteChica().draw(batch, linea, 0f, y,
-                                           Constantes.ANCHO_VISTA, Align.center, false);
-            y -= 26f;
+                Constantes.ANCHO_VISTA, Align.center, false);
+            y -= 24f;
         }
 
         recursos.getFuenteChica().setColor(Color.LIGHT_GRAY);
         recursos.getFuenteChica().draw(batch, "ESC o ENTER para volver al menú",
-                                       0f, 48f, Constantes.ANCHO_VISTA, Align.center, false);
+            0f, 48f, Constantes.ANCHO_VISTA, Align.center, false);
         recursos.getFuenteChica().setColor(Color.WHITE);
 
         batch.end();

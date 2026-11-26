@@ -28,6 +28,7 @@ public class Partida implements Disposable {
 
     private float tiempoRestante = Constantes.DURACION_NIVEL;
     private float esperaProximoPedido = Constantes.ESPERA_PRIMER_PEDIDO;
+    private float esperaAvisoTinasSucias = Constantes.INTERVALO_AVISO_TINAS_SUCIAS;
     private boolean calderaEncendida;
     private float temperaturaCaldera;
     private int pedidosCompletados;
@@ -91,7 +92,7 @@ public class Partida implements Disposable {
             if (tina.getEstado() == EstadoTina.OCUPADA && tina.getPedido().estaVencido()) {
                 tina.ensuciar();
                 pedidosFallidos++;
-                avisarATodos("Un espíritu se fue enojado de la tina " + tina.getNumero(), Efecto.ERROR);
+                avisarATodos("Un espíritu se fue enojado y dejó sucia la tina " + tina.getNumero(), Efecto.ERROR);
             }
         }
         esperaProximoPedido -= delta;
@@ -99,6 +100,29 @@ public class Partida implements Disposable {
             crearPedido();
             esperaProximoPedido = Constantes.ESPERA_ENTRE_PEDIDOS;
         }
+        revisarTinasSucias(delta);
+    }
+
+    private void revisarTinasSucias(float delta) {
+        if (pedidosActivos() > 0 || tinasEn(EstadoTina.LIBRE) > 0) {
+            esperaAvisoTinasSucias = 0f;
+            return;
+        }
+        esperaAvisoTinasSucias -= delta;
+        if (esperaAvisoTinasSucias <= 0f) {
+            avisarATodos("¡Todas las tinas están sucias! Límpienlas para que entren más espíritus", Efecto.ERROR);
+            esperaAvisoTinasSucias = Constantes.INTERVALO_AVISO_TINAS_SUCIAS;
+        }
+    }
+
+    private int tinasEn(EstadoTina estado) {
+        int cantidad = 0;
+        for (TinaServidor tina : tinas) {
+            if (tina.getEstado() == estado) {
+                cantidad++;
+            }
+        }
+        return cantidad;
     }
 
     private void crearPedido() {
@@ -117,13 +141,7 @@ public class Partida implements Disposable {
     }
 
     private int pedidosActivos() {
-        int activos = 0;
-        for (TinaServidor tina : tinas) {
-            if (tina.getEstado() == EstadoTina.OCUPADA) {
-                activos++;
-            }
-        }
-        return activos;
+        return tinasEn(EstadoTina.OCUPADA);
     }
 
     private void revisarFin() {
@@ -143,6 +161,13 @@ public class Partida implements Disposable {
         }
         avisarATodos(ganoLaPartida ? "¡Turno completado!" : "Se cerró la casa de baños",
             ganoLaPartida ? Efecto.PEDIDO_COMPLETO : Efecto.ERROR);
+    }
+
+    public void forzarFin() {
+        if (!terminada) {
+            tiempoRestante = 0f;
+            terminar(false);
+        }
     }
 
     private void interactuar(JugadorServidor jugador) {
@@ -267,7 +292,8 @@ public class Partida implements Disposable {
         jugador.setObjetoEnMano(ObjetoEnMano.NADA);
         if (pedido.estaCompleto()) {
             completar(tina);
-            aceptar(jugador, "¡Espíritu satisfecho!", Efecto.PEDIDO_COMPLETO);
+            aceptar(jugador, "¡Espíritu satisfecho! La tina " + tina.getNumero() + " quedó sucia: limpiala",
+                Efecto.PEDIDO_COMPLETO);
         } else {
             aceptar(jugador, "Entregado, falta lo otro", Efecto.ENTREGAR);
         }

@@ -55,6 +55,7 @@ public final class Constantes {
     public static final int MAX_PEDIDOS_ACTIVOS = 2;
     public static final float ESPERA_PRIMER_PEDIDO = 2f;
     public static final float ESPERA_ENTRE_PEDIDOS = 6f;
+    public static final float INTERVALO_AVISO_TINAS_SUCIAS = 8f;
     public static final float SOLAPE_ESPIRITU_EN_TINA = 8f;
     public static final float TIEMPO_CALENTAR_CALDERA = 3f;
     public static final int PUNTOS_POR_PEDIDO = 100;
