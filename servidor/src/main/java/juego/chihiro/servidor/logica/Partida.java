@@ -9,6 +9,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 
 import juego.chihiro.mundo.EstadoTina;
+import juego.chihiro.mundo.Nivel;
 import juego.chihiro.mundo.ObjetoEnMano;
 import juego.chihiro.mundo.TipoEspiritu;
 import juego.chihiro.mundo.TipoInteractivo;
@@ -26,9 +27,9 @@ public class Partida implements Disposable {
     private final JugadorServidor[] jugadores = new JugadorServidor[Constantes.CANTIDAD_JUGADORES];
     private final Array<TinaServidor> tinas = new Array<>();
     private final List<Aviso> avisos = new ArrayList<Aviso>();
-    private final TipoEspiritu[] tiposDePedido = TipoEspiritu.values();
+    private final Nivel nivel;
 
-    private float tiempoRestante = Constantes.DURACION_NIVEL;
+    private float tiempoRestante;
     private float esperaProximoPedido = Constantes.ESPERA_PRIMER_PEDIDO;
     private float esperaAvisoTinasSucias = Constantes.INTERVALO_AVISO_TINAS_SUCIAS;
     private boolean calderaEncendida;
@@ -39,7 +40,9 @@ public class Partida implements Disposable {
     private boolean terminada;
     private boolean gano;
 
-    public Partida(MapaServidor mapa, int[] contadoresIniciales) {
+    public Partida(MapaServidor mapa, Nivel nivel, int[] contadoresIniciales) {
+        this.nivel = nivel;
+        this.tiempoRestante = nivel.getDuracion();
         mundo = new MundoFisico(mapa);
         for (int i = 0; i < jugadores.length; i++) {
             jugadores[i] = new JugadorServidor(i + 1);
@@ -98,9 +101,9 @@ public class Partida implements Disposable {
             }
         }
         esperaProximoPedido -= delta;
-        if (esperaProximoPedido <= 0f && pedidosActivos() < Constantes.MAX_PEDIDOS_ACTIVOS) {
+        if (esperaProximoPedido <= 0f && pedidosActivos() < nivel.getMaximoPedidosActivos()) {
             crearPedido();
-            esperaProximoPedido = Constantes.ESPERA_ENTRE_PEDIDOS;
+            esperaProximoPedido = nivel.getEsperaEntrePedidos();
         }
         revisarTinasSucias(delta);
     }
@@ -138,7 +141,7 @@ public class Partida implements Disposable {
             return;
         }
         TinaServidor elegida = libres.random();
-        TipoEspiritu tipo = tiposDePedido[MathUtils.random(tiposDePedido.length - 1)];
+        TipoEspiritu tipo = nivel.tipoAlAzar(MathUtils.random());
         elegida.recibirEspiritu(new PedidoServidor(tipo));
         avisarATodos("Llegó un " + tipo.getNombre().toLowerCase() + " a la tina " + elegida.getNumero()
             + ": quiere " + elegida.getPedido().describirFaltantes(), Efecto.NINGUNO);
@@ -149,9 +152,9 @@ public class Partida implements Disposable {
     }
 
     private void revisarFin() {
-        if (pedidosCompletados >= Constantes.PEDIDOS_PARA_GANAR) {
+        if (pedidosCompletados >= nivel.getPedidosParaGanar()) {
             terminar(true);
-        } else if (pedidosFallidos >= Constantes.FALLOS_PARA_PERDER || tiempoRestante <= 0f) {
+        } else if (pedidosFallidos >= nivel.getFallosParaPerder() || tiempoRestante <= 0f) {
             terminar(false);
         }
     }
@@ -163,7 +166,7 @@ public class Partida implements Disposable {
         for (JugadorServidor jugador : jugadores) {
             jugador.detener();
         }
-        avisarATodos(ganoLaPartida ? "¡Turno completado!" : "Se cerró la casa de baños",
+        avisarATodos(ganoLaPartida ? "¡Nivel " + nivel.getNumero() + " superado!" : "Se cerró la casa de baños",
             ganoLaPartida ? Efecto.PEDIDO_COMPLETO : Efecto.ERROR);
     }
 
@@ -371,6 +374,10 @@ public class Partida implements Disposable {
 
     public float getProporcionCaldera() {
         return MathUtils.clamp(temperaturaCaldera / Constantes.TIEMPO_CALENTAR_CALDERA, 0f, 1f);
+    }
+
+    public Nivel getNivel() {
+        return nivel;
     }
 
     public JugadorServidor getJugador(int numero) {

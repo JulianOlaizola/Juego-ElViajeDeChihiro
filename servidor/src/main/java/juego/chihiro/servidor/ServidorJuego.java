@@ -8,6 +8,7 @@ import java.util.List;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 
+import juego.chihiro.mundo.Nivel;
 import juego.chihiro.mundo.TipoEspiritu;
 import juego.chihiro.red.FasePartida;
 import juego.chihiro.red.InstantaneaPartida;
@@ -38,8 +39,10 @@ public class ServidorJuego extends ApplicationAdapter {
 
     private final ServidorUdp red;
     private final GestorSesiones sesiones = new GestorSesiones();
-    private final MapaServidor[] mapas = new MapaServidor[Constantes.RUTAS_MAPAS.length];
-    private MapaServidor mapa;
+    private final MapaServidor[] mapas = new MapaServidor[Nivel.values().length];
+    private boolean mapasListos;
+    private Nivel nivel = Nivel.SALON;
+    private int puntajeAcumulado;
     private Partida partida;
     private FasePartida fase = FasePartida.SALA;
     private String nombreServidor = "Casa de Baños";
@@ -54,22 +57,23 @@ public class ServidorJuego extends ApplicationAdapter {
     @Override
     public void create() {
         try {
-            for (int i = 0; i < mapas.length; i++) {
-                mapas[i] = new MapaServidor(Constantes.RUTAS_MAPAS[i]);
+            for (Nivel cadaNivel : Nivel.values()) {
+                mapas[cadaNivel.ordinal()] = new MapaServidor(cadaNivel.getRutaMapa());
             }
         } catch (MapaInvalidoException e) {
             Registro.error("No se pudo cargar un mapa del servidor", e);
             Gdx.app.exit();
             return;
         }
-        mapa = mapas[0];
+        mapasListos = true;
         instanteAnterior = System.nanoTime();
         nombreServidor = buscarNombreDelEquipo();
 
         Registro.info("Servidor de El Viaje de Chihiro escuchando por UDP en el puerto " + red.getPuerto());
-        for (int i = 0; i < mapas.length; i++) {
-            Registro.info("Mapa " + Constantes.RUTAS_MAPAS[i] + " cargado: " + mapas[i].getColisiones().size
-                + " paredes y " + mapas[i].getInteractivos().size + " objetos interactivos");
+        for (Nivel cadaNivel : Nivel.values()) {
+            MapaServidor mapa = mapas[cadaNivel.ordinal()];
+            Registro.info("Nivel " + cadaNivel.getNumero() + " (" + cadaNivel.getNombre() + "): "
+                + mapa.getColisiones().size + " paredes y " + mapa.getInteractivos().size + " objetos interactivos");
         }
         Registro.info("Box2D se crea de cero al empezar cada partida.");
         mostrarDirecciones();
@@ -101,7 +105,7 @@ public class ServidorJuego extends ApplicationAdapter {
 
     @Override
     public void render() {
-        if (mapa == null) {
+        if (!mapasListos) {
             return;
         }
         long ahora = System.nanoTime();
@@ -310,10 +314,28 @@ public class ServidorJuego extends ApplicationAdapter {
         if (fase == FasePartida.SALA && sesiones.todosListos()) {
             comenzarPartida();
         } else if (fase == FasePartida.TERMINADA && sesiones.todosListos()) {
-            Registro.info("Los dos jugadores votaron revancha");
+            String anuncio = elegirSiguienteNivel();
             comenzarPartida();
-            difundirEvento(TipoEvento.AVISO, "¡Revancha! Empieza un turno nuevo", "PEDIDO_COMPLETO");
+            difundirEvento(TipoEvento.AVISO, anuncio, "PEDIDO_COMPLETO");
         }
+    }
+
+    private String elegirSiguienteNivel() {
+        if (!partida.gano()) {
+            Registro.info("Los dos jugadores votaron reintentar el nivel " + nivel.getNumero());
+            return "¡Revancha! Otra vez el nivel " + nivel.getNumero();
+        }
+        if (nivel.esElUltimo()) {
+            Registro.info("Completaron los " + Nivel.values().length + " niveles con "
+                + (puntajeAcumulado + partida.getPuntaje()) + " puntos. Empieza otra noche desde el nivel 1");
+            nivel = Nivel.SALON;
+            puntajeAcumulado = 0;
+            return "¡Empieza otra noche en la casa de baños!";
+        }
+        puntajeAcumulado += partida.getPuntaje();
+        nivel = nivel.siguiente();
+        Registro.info("Los dos jugadores pasan al nivel " + nivel.getNumero() + ": " + nivel.getNombre());
+        return "Nivel " + nivel.getNumero() + ": " + nivel.getNombre();
     }
 
     private void atenderPausas() {
@@ -351,7 +373,8 @@ public class ServidorJuego extends ApplicationAdapter {
             difundirEvento(TipoEvento.FIN_PARTIDA, partida.gano() ? "1" : "0", String.valueOf(partida.getPuntaje()));
             sesiones.reiniciarListos();
             Registro.info("Partida terminada. " + (partida.gano() ? "Ganaron" : "Perdieron")
-                + " con " + partida.getPuntaje() + " puntos. Pueden votar revancha desde el juego.");
+                + " el nivel " + nivel.getNumero() + " con " + partida.getPuntaje()
+                + " puntos. Pueden votar desde el juego para seguir.");
         }
     }
 
@@ -363,10 +386,11 @@ public class ServidorJuego extends ApplicationAdapter {
             sesion.descartarPedidosDePausa();
         }
         descartarPartida();
-        partida = new Partida(mapa, contadores);
+        partida = new Partida(mapas[nivel.ordinal()], nivel, contadores);
         fase = FasePartida.JUGANDO;
-        difundirEvento(TipoEvento.INICIO_PARTIDA);
-        Registro.info("Los dos jugadores están listos: comienza la partida con un mundo Box2D nuevo");
+        difundirEvento(TipoEvento.INICIO_PARTIDA, String.valueOf(nivel.getNumero()), nivel.getNombre());
+        Registro.info("Comienza el nivel " + nivel.getNumero() + " (" + nivel.getNombre()
+            + ") con un mundo Box2D nuevo");
     }
 
     private void descartarPartida() {
@@ -378,6 +402,8 @@ public class ServidorJuego extends ApplicationAdapter {
 
     private void volverALaSala() {
         fase = FasePartida.SALA;
+        nivel = Nivel.SALON;
+        puntajeAcumulado = 0;
         sesiones.reiniciarListos();
         descartarPartida();
         Registro.info("La partida se canceló: se vuelve a la sala de espera");
@@ -387,6 +413,7 @@ public class ServidorJuego extends ApplicationAdapter {
         InstantaneaPartida instantanea = new InstantaneaPartida();
         instantanea.setSecuencia(++secuenciaEstado);
         instantanea.setFase(fase);
+        instantanea.setNivel(nivel, puntajeAcumulado);
         instantanea.setSegundosParaReconexion((int) (sesiones.milisParaReconexion(System.currentTimeMillis()) / 1000));
         for (SesionJugador sesion : sesiones.todas()) {
             instantanea.setJugador(sesion.getNumero(), sesion.estaConectado(), sesion.estaListo());
@@ -432,7 +459,7 @@ public class ServidorJuego extends ApplicationAdapter {
     }
 
     public void imprimirEstado() {
-        Registro.info("Fase: " + fase + " | Ticks: " + ticks
+        Registro.info("Fase: " + fase + " | Nivel: " + nivel.getNumero() + " | Ticks: " + ticks
             + " | Recibidos: " + red.getPaquetesRecibidos()
             + " | Enviados: " + red.getPaquetesEnviados()
             + " | Descartados: " + red.getPaquetesDescartados()
