@@ -9,10 +9,15 @@ import juego.chihiro.utiles.Recursos;
 public class Espiritu extends Entidad {
     private final Recursos recursos;
     private boolean visible;
+    private int fila;
 
     public Espiritu(float x, float y, Recursos recursos) {
         super(x, y, Constantes.TAM_TILE, Constantes.TAM_TILE);
         this.recursos = recursos;
+    }
+
+    public void setFila(int fila) {
+        this.fila = fila;
     }
 
     public void actualizar(float delta, boolean presente) {
@@ -30,7 +35,7 @@ public class Espiritu extends Entidad {
         if (!visible) {
             return;
         }
-        TextureRegion cuadro = recursos.getFlotarEspiritu().getKeyFrame(tiempoAnimacion);
+        TextureRegion cuadro = recursos.flotarEspiritu(fila).getKeyFrame(tiempoAnimacion);
         batch.draw(cuadro, hitbox.x, hitbox.y, hitbox.width, hitbox.height);
     }
 }

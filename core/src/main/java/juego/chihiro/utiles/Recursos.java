@@ -15,8 +15,8 @@ public class Recursos implements Disposable {
     private final Array<Array<Animation<TextureRegion>>> caminatas = new Array<>();
     private final Array<Array<TextureRegion>> reposos = new Array<>();
     private final Array<TextureRegion> objetos = new Array<>();
+    private final Array<Animation<TextureRegion>> flotarEspiritus = new Array<>();
 
-    private final Animation<TextureRegion> flotarEspiritu;
     private final TextureRegion pixel;
     private final TextureRegion logo;
 
@@ -49,18 +49,22 @@ public class Recursos implements Disposable {
         Texture hojaEspiritus = texturaNitida(assets, Constantes.RUTA_ESPIRITUS);
         TextureRegion[][] cuadrosEspiritu =
             TextureRegion.split(hojaEspiritus, Constantes.TAM_TILE, Constantes.TAM_TILE);
-        Array<TextureRegion> secuenciaEspiritu = new Array<>();
-        for (int columna = 0; columna < Constantes.CUADROS_POR_FILA; columna++) {
-            secuenciaEspiritu.add(cuadrosEspiritu[0][columna]);
+        for (int fila = 0; fila < Constantes.FILAS_ESPIRITUS; fila++) {
+            Array<TextureRegion> secuenciaEspiritu = new Array<>();
+            for (int columna = 0; columna < Constantes.CUADROS_POR_FILA; columna++) {
+                secuenciaEspiritu.add(cuadrosEspiritu[fila][columna]);
+            }
+            flotarEspiritus.add(new Animation<>(
+                Constantes.DURACION_CUADRO * 2f, secuenciaEspiritu, Animation.PlayMode.LOOP));
         }
-        flotarEspiritu = new Animation<>(
-            Constantes.DURACION_CUADRO * 2f, secuenciaEspiritu, Animation.PlayMode.LOOP);
 
         Texture hojaObjetos = texturaNitida(assets, Constantes.RUTA_OBJETOS);
         TextureRegion[][] cuadrosObjeto =
             TextureRegion.split(hojaObjetos, Constantes.TAM_TILE, Constantes.TAM_TILE);
-        for (int columna = 0; columna < Constantes.CUADROS_POR_FILA; columna++) {
-            objetos.add(cuadrosObjeto[0][columna]);
+        for (TextureRegion[] filaObjetos : cuadrosObjeto) {
+            for (TextureRegion region : filaObjetos) {
+                objetos.add(region);
+            }
         }
 
         pixel = new TextureRegion(texturaNitida(assets, Constantes.RUTA_PIXEL));
@@ -105,8 +109,9 @@ public class Recursos implements Disposable {
         return reposos.get(jugador - 1).get(direccion);
     }
 
-    public Animation<TextureRegion> getFlotarEspiritu() {
-        return flotarEspiritu;
+    public Animation<TextureRegion> flotarEspiritu(int fila) {
+        int filaValida = Math.max(0, Math.min(fila, flotarEspiritus.size - 1));
+        return flotarEspiritus.get(filaValida);
     }
 
     public TextureRegion objeto(int indiceRegion) {

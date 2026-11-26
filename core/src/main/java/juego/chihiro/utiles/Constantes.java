@@ -36,6 +36,10 @@ public final class Constantes {
 
     public static final int CANTIDAD_JUGADORES = 2;
     public static final int CUADROS_POR_FILA = 4;
+    public static final int FILAS_ESPIRITUS = 4;
+    public static final int REGION_MANCHA = 5;
+    public static final int REGION_TINA_SUCIA = 6;
+    public static final int REGION_VAPOR = 7;
     public static final int DIRECCIONES = 4;
     public static final float DURACION_CUADRO = 0.12f;
 
