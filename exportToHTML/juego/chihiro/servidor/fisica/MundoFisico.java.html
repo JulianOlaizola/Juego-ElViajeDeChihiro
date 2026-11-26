@@ -1,0 +1,156 @@
+<html>
+<head>
+<title>MundoFisico.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #2aacb8;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+MundoFisico.java</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span><span class="s1">juego</span><span class="s2">.</span><span class="s1">chihiro</span><span class="s2">.</span><span class="s1">servidor</span><span class="s2">.</span><span class="s1">fisica</span><span class="s2">;</span>
+
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">math</span><span class="s2">.</span><span class="s1">Rectangle</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">math</span><span class="s2">.</span><span class="s1">Vector2</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">physics</span><span class="s2">.</span><span class="s1">box2d</span><span class="s2">.</span><span class="s1">Body</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">physics</span><span class="s2">.</span><span class="s1">box2d</span><span class="s2">.</span><span class="s1">BodyDef</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">physics</span><span class="s2">.</span><span class="s1">box2d</span><span class="s2">.</span><span class="s1">Box2D</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">physics</span><span class="s2">.</span><span class="s1">box2d</span><span class="s2">.</span><span class="s1">Fixture</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">physics</span><span class="s2">.</span><span class="s1">box2d</span><span class="s2">.</span><span class="s1">FixtureDef</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">physics</span><span class="s2">.</span><span class="s1">box2d</span><span class="s2">.</span><span class="s1">PolygonShape</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">physics</span><span class="s2">.</span><span class="s1">box2d</span><span class="s2">.</span><span class="s1">QueryCallback</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">physics</span><span class="s2">.</span><span class="s1">box2d</span><span class="s2">.</span><span class="s1">World</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">badlogic</span><span class="s2">.</span><span class="s1">gdx</span><span class="s2">.</span><span class="s1">utils</span><span class="s2">.</span><span class="s1">Disposable</span><span class="s2">;</span>
+
+<span class="s0">import </span><span class="s1">juego</span><span class="s2">.</span><span class="s1">chihiro</span><span class="s2">.</span><span class="s1">utiles</span><span class="s2">.</span><span class="s1">Constantes</span><span class="s2">;</span>
+
+<span class="s0">public class </span><span class="s1">MundoFisico </span><span class="s0">implements </span><span class="s1">Disposable </span><span class="s2">{</span>
+
+    <span class="s0">public static final float </span><span class="s1">PIXELES_POR_METRO </span><span class="s2">= </span><span class="s3">32f</span><span class="s2">;</span>
+    <span class="s0">public static final float </span><span class="s1">PASO </span><span class="s2">= </span><span class="s3">1f </span><span class="s2">/ </span><span class="s3">60f</span><span class="s2">;</span>
+    <span class="s0">private static final int </span><span class="s1">ITERACIONES_VELOCIDAD </span><span class="s2">= </span><span class="s3">6</span><span class="s2">;</span>
+    <span class="s0">private static final int </span><span class="s1">ITERACIONES_POSICION </span><span class="s2">= </span><span class="s3">2</span><span class="s2">;</span>
+    <span class="s0">private static final int </span><span class="s1">MAXIMO_PASOS_POR_TICK </span><span class="s2">= </span><span class="s3">5</span><span class="s2">;</span>
+    <span class="s0">private static final float </span><span class="s1">MAXIMO_DELTA </span><span class="s2">= </span><span class="s3">0.25f</span><span class="s2">;</span>
+
+    <span class="s0">private static boolean </span><span class="s1">box2dIniciado</span><span class="s2">;</span>
+
+    <span class="s0">private final </span><span class="s1">World mundo</span><span class="s2">;</span>
+    <span class="s0">private final int </span><span class="s1">cantidadParedes</span><span class="s2">;</span>
+    <span class="s0">private final int </span><span class="s1">cantidadSensores</span><span class="s2">;</span>
+    <span class="s0">private float </span><span class="s1">acumulador</span><span class="s2">;</span>
+
+    <span class="s0">public </span><span class="s1">MundoFisico</span><span class="s2">(</span><span class="s1">MapaServidor mapa</span><span class="s2">) {</span>
+        <span class="s1">iniciarBox2D</span><span class="s2">();</span>
+        <span class="s1">mundo </span><span class="s2">= </span><span class="s0">new </span><span class="s1">World</span><span class="s2">(</span><span class="s0">new </span><span class="s1">Vector2</span><span class="s2">(</span><span class="s3">0f</span><span class="s2">, </span><span class="s3">0f</span><span class="s2">), </span><span class="s0">true</span><span class="s2">);</span>
+        <span class="s0">for </span><span class="s2">(</span><span class="s1">Rectangle pared </span><span class="s2">: </span><span class="s1">mapa</span><span class="s2">.</span><span class="s1">getColisiones</span><span class="s2">()) {</span>
+            <span class="s1">crearRectangulo</span><span class="s2">(</span><span class="s1">BodyDef</span><span class="s2">.</span><span class="s1">BodyType</span><span class="s2">.</span><span class="s1">StaticBody</span><span class="s2">, </span><span class="s1">pared</span><span class="s2">, </span><span class="s0">false</span><span class="s2">, </span><span class="s0">null</span><span class="s2">);</span>
+        <span class="s2">}</span>
+        <span class="s0">for </span><span class="s2">(</span><span class="s1">ObjetoServidor objeto </span><span class="s2">: </span><span class="s1">mapa</span><span class="s2">.</span><span class="s1">getInteractivos</span><span class="s2">()) {</span>
+            <span class="s1">crearRectangulo</span><span class="s2">(</span><span class="s1">BodyDef</span><span class="s2">.</span><span class="s1">BodyType</span><span class="s2">.</span><span class="s1">StaticBody</span><span class="s2">, </span><span class="s1">objeto</span><span class="s2">.</span><span class="s1">getArea</span><span class="s2">(), </span><span class="s0">true</span><span class="s2">, </span><span class="s1">objeto</span><span class="s2">);</span>
+        <span class="s2">}</span>
+        <span class="s1">cantidadParedes </span><span class="s2">= </span><span class="s1">mapa</span><span class="s2">.</span><span class="s1">getColisiones</span><span class="s2">().</span><span class="s1">size</span><span class="s2">;</span>
+        <span class="s1">cantidadSensores </span><span class="s2">= </span><span class="s1">mapa</span><span class="s2">.</span><span class="s1">getInteractivos</span><span class="s2">().</span><span class="s1">size</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">private static synchronized void </span><span class="s1">iniciarBox2D</span><span class="s2">() {</span>
+        <span class="s0">if </span><span class="s2">(!</span><span class="s1">box2dIniciado</span><span class="s2">) {</span>
+            <span class="s1">Box2D</span><span class="s2">.</span><span class="s1">init</span><span class="s2">();</span>
+            <span class="s1">box2dIniciado </span><span class="s2">= </span><span class="s0">true</span><span class="s2">;</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s0">private </span><span class="s1">Body crearRectangulo</span><span class="s2">(</span><span class="s1">BodyDef</span><span class="s2">.</span><span class="s1">BodyType tipo</span><span class="s2">, </span><span class="s1">Rectangle area</span><span class="s2">, </span><span class="s0">boolean </span><span class="s1">sensor</span><span class="s2">, </span><span class="s1">Object datos</span><span class="s2">) {</span>
+        <span class="s1">BodyDef definicion </span><span class="s2">= </span><span class="s0">new </span><span class="s1">BodyDef</span><span class="s2">();</span>
+        <span class="s1">definicion</span><span class="s2">.</span><span class="s1">type </span><span class="s2">= </span><span class="s1">tipo</span><span class="s2">;</span>
+        <span class="s1">definicion</span><span class="s2">.</span><span class="s1">position</span><span class="s2">.</span><span class="s1">set</span><span class="s2">(</span><span class="s1">aMetros</span><span class="s2">(</span><span class="s1">area</span><span class="s2">.</span><span class="s1">x </span><span class="s2">+ </span><span class="s1">area</span><span class="s2">.</span><span class="s1">width </span><span class="s2">/ </span><span class="s3">2f</span><span class="s2">), </span><span class="s1">aMetros</span><span class="s2">(</span><span class="s1">area</span><span class="s2">.</span><span class="s1">y </span><span class="s2">+ </span><span class="s1">area</span><span class="s2">.</span><span class="s1">height </span><span class="s2">/ </span><span class="s3">2f</span><span class="s2">));</span>
+        <span class="s1">Body cuerpo </span><span class="s2">= </span><span class="s1">mundo</span><span class="s2">.</span><span class="s1">createBody</span><span class="s2">(</span><span class="s1">definicion</span><span class="s2">);</span>
+
+        <span class="s1">PolygonShape forma </span><span class="s2">= </span><span class="s0">new </span><span class="s1">PolygonShape</span><span class="s2">();</span>
+        <span class="s1">forma</span><span class="s2">.</span><span class="s1">setAsBox</span><span class="s2">(</span><span class="s1">aMetros</span><span class="s2">(</span><span class="s1">area</span><span class="s2">.</span><span class="s1">width </span><span class="s2">/ </span><span class="s3">2f</span><span class="s2">), </span><span class="s1">aMetros</span><span class="s2">(</span><span class="s1">area</span><span class="s2">.</span><span class="s1">height </span><span class="s2">/ </span><span class="s3">2f</span><span class="s2">));</span>
+        <span class="s1">FixtureDef accesorio </span><span class="s2">= </span><span class="s0">new </span><span class="s1">FixtureDef</span><span class="s2">();</span>
+        <span class="s1">accesorio</span><span class="s2">.</span><span class="s1">shape </span><span class="s2">= </span><span class="s1">forma</span><span class="s2">;</span>
+        <span class="s1">accesorio</span><span class="s2">.</span><span class="s1">isSensor </span><span class="s2">= </span><span class="s1">sensor</span><span class="s2">;</span>
+        <span class="s1">Fixture fixture </span><span class="s2">= </span><span class="s1">cuerpo</span><span class="s2">.</span><span class="s1">createFixture</span><span class="s2">(</span><span class="s1">accesorio</span><span class="s2">);</span>
+        <span class="s1">fixture</span><span class="s2">.</span><span class="s1">setUserData</span><span class="s2">(</span><span class="s1">datos</span><span class="s2">);</span>
+        <span class="s1">forma</span><span class="s2">.</span><span class="s1">dispose</span><span class="s2">();</span>
+        <span class="s0">return </span><span class="s1">cuerpo</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public </span><span class="s1">Body crearCuerpoJugador</span><span class="s2">(</span><span class="s0">float </span><span class="s1">centroX</span><span class="s2">, </span><span class="s0">float </span><span class="s1">centroY</span><span class="s2">, </span><span class="s1">Object duenio</span><span class="s2">) {</span>
+        <span class="s1">BodyDef definicion </span><span class="s2">= </span><span class="s0">new </span><span class="s1">BodyDef</span><span class="s2">();</span>
+        <span class="s1">definicion</span><span class="s2">.</span><span class="s1">type </span><span class="s2">= </span><span class="s1">BodyDef</span><span class="s2">.</span><span class="s1">BodyType</span><span class="s2">.</span><span class="s1">DynamicBody</span><span class="s2">;</span>
+        <span class="s1">definicion</span><span class="s2">.</span><span class="s1">fixedRotation </span><span class="s2">= </span><span class="s0">true</span><span class="s2">;</span>
+        <span class="s1">definicion</span><span class="s2">.</span><span class="s1">position</span><span class="s2">.</span><span class="s1">set</span><span class="s2">(</span><span class="s1">aMetros</span><span class="s2">(</span><span class="s1">centroX</span><span class="s2">), </span><span class="s1">aMetros</span><span class="s2">(</span><span class="s1">centroY</span><span class="s2">));</span>
+        <span class="s1">Body cuerpo </span><span class="s2">= </span><span class="s1">mundo</span><span class="s2">.</span><span class="s1">createBody</span><span class="s2">(</span><span class="s1">definicion</span><span class="s2">);</span>
+
+        <span class="s1">PolygonShape forma </span><span class="s2">= </span><span class="s0">new </span><span class="s1">PolygonShape</span><span class="s2">();</span>
+        <span class="s1">forma</span><span class="s2">.</span><span class="s1">setAsBox</span><span class="s2">(</span><span class="s1">aMetros</span><span class="s2">(</span><span class="s1">Constantes</span><span class="s2">.</span><span class="s1">ANCHO_HITBOX </span><span class="s2">/ </span><span class="s3">2f</span><span class="s2">), </span><span class="s1">aMetros</span><span class="s2">(</span><span class="s1">Constantes</span><span class="s2">.</span><span class="s1">ALTO_HITBOX </span><span class="s2">/ </span><span class="s3">2f</span><span class="s2">));</span>
+        <span class="s1">FixtureDef accesorio </span><span class="s2">= </span><span class="s0">new </span><span class="s1">FixtureDef</span><span class="s2">();</span>
+        <span class="s1">accesorio</span><span class="s2">.</span><span class="s1">shape </span><span class="s2">= </span><span class="s1">forma</span><span class="s2">;</span>
+        <span class="s1">accesorio</span><span class="s2">.</span><span class="s1">density </span><span class="s2">= </span><span class="s3">1f</span><span class="s2">;</span>
+        <span class="s1">accesorio</span><span class="s2">.</span><span class="s1">friction </span><span class="s2">= </span><span class="s3">0f</span><span class="s2">;</span>
+        <span class="s1">Fixture fixture </span><span class="s2">= </span><span class="s1">cuerpo</span><span class="s2">.</span><span class="s1">createFixture</span><span class="s2">(</span><span class="s1">accesorio</span><span class="s2">);</span>
+        <span class="s1">fixture</span><span class="s2">.</span><span class="s1">setUserData</span><span class="s2">(</span><span class="s1">duenio</span><span class="s2">);</span>
+        <span class="s1">cuerpo</span><span class="s2">.</span><span class="s1">setUserData</span><span class="s2">(</span><span class="s1">duenio</span><span class="s2">);</span>
+        <span class="s1">forma</span><span class="s2">.</span><span class="s1">dispose</span><span class="s2">();</span>
+        <span class="s0">return </span><span class="s1">cuerpo</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public void </span><span class="s1">destruir</span><span class="s2">(</span><span class="s1">Body cuerpo</span><span class="s2">) {</span>
+        <span class="s0">if </span><span class="s2">(</span><span class="s1">cuerpo </span><span class="s2">!= </span><span class="s0">null</span><span class="s2">) {</span>
+            <span class="s1">mundo</span><span class="s2">.</span><span class="s1">destroyBody</span><span class="s2">(</span><span class="s1">cuerpo</span><span class="s2">);</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public int </span><span class="s1">avanzar</span><span class="s2">(</span><span class="s0">float </span><span class="s1">delta</span><span class="s2">) {</span>
+        <span class="s1">acumulador </span><span class="s2">+= </span><span class="s1">Math</span><span class="s2">.</span><span class="s1">min</span><span class="s2">(</span><span class="s1">delta</span><span class="s2">, </span><span class="s1">MAXIMO_DELTA</span><span class="s2">);</span>
+        <span class="s0">int </span><span class="s1">pasos </span><span class="s2">= </span><span class="s3">0</span><span class="s2">;</span>
+        <span class="s0">while </span><span class="s2">(</span><span class="s1">acumulador </span><span class="s2">&gt;= </span><span class="s1">PASO </span><span class="s2">&amp;&amp; </span><span class="s1">pasos </span><span class="s2">&lt; </span><span class="s1">MAXIMO_PASOS_POR_TICK</span><span class="s2">) {</span>
+            <span class="s1">mundo</span><span class="s2">.</span><span class="s1">step</span><span class="s2">(</span><span class="s1">PASO</span><span class="s2">, </span><span class="s1">ITERACIONES_VELOCIDAD</span><span class="s2">, </span><span class="s1">ITERACIONES_POSICION</span><span class="s2">);</span>
+            <span class="s1">acumulador </span><span class="s2">-= </span><span class="s1">PASO</span><span class="s2">;</span>
+            <span class="s1">pasos</span><span class="s2">++;</span>
+        <span class="s2">}</span>
+        <span class="s0">if </span><span class="s2">(</span><span class="s1">pasos </span><span class="s2">== </span><span class="s1">MAXIMO_PASOS_POR_TICK</span><span class="s2">) {</span>
+            <span class="s1">acumulador </span><span class="s2">= </span><span class="s3">0f</span><span class="s2">;</span>
+        <span class="s2">}</span>
+        <span class="s0">return </span><span class="s1">pasos</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public void </span><span class="s1">buscarEn</span><span class="s2">(</span><span class="s1">Rectangle zona</span><span class="s2">, </span><span class="s1">QueryCallback consulta</span><span class="s2">) {</span>
+        <span class="s1">mundo</span><span class="s2">.</span><span class="s1">QueryAABB</span><span class="s2">(</span><span class="s1">consulta</span><span class="s2">,</span>
+            <span class="s1">aMetros</span><span class="s2">(</span><span class="s1">zona</span><span class="s2">.</span><span class="s1">x</span><span class="s2">), </span><span class="s1">aMetros</span><span class="s2">(</span><span class="s1">zona</span><span class="s2">.</span><span class="s1">y</span><span class="s2">),</span>
+            <span class="s1">aMetros</span><span class="s2">(</span><span class="s1">zona</span><span class="s2">.</span><span class="s1">x </span><span class="s2">+ </span><span class="s1">zona</span><span class="s2">.</span><span class="s1">width</span><span class="s2">), </span><span class="s1">aMetros</span><span class="s2">(</span><span class="s1">zona</span><span class="s2">.</span><span class="s1">y </span><span class="s2">+ </span><span class="s1">zona</span><span class="s2">.</span><span class="s1">height</span><span class="s2">));</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public int </span><span class="s1">getCantidadParedes</span><span class="s2">() {</span>
+        <span class="s0">return </span><span class="s1">cantidadParedes</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public int </span><span class="s1">getCantidadSensores</span><span class="s2">() {</span>
+        <span class="s0">return </span><span class="s1">cantidadSensores</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public static float </span><span class="s1">aMetros</span><span class="s2">(</span><span class="s0">float </span><span class="s1">pixeles</span><span class="s2">) {</span>
+        <span class="s0">return </span><span class="s1">pixeles </span><span class="s2">/ </span><span class="s1">PIXELES_POR_METRO</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s0">public static float </span><span class="s1">aPixeles</span><span class="s2">(</span><span class="s0">float </span><span class="s1">metros</span><span class="s2">) {</span>
+        <span class="s0">return </span><span class="s1">metros </span><span class="s2">* </span><span class="s1">PIXELES_POR_METRO</span><span class="s2">;</span>
+    <span class="s2">}</span>
+
+    <span class="s1">@Override</span>
+    <span class="s0">public void </span><span class="s1">dispose</span><span class="s2">() {</span>
+        <span class="s1">mundo</span><span class="s2">.</span><span class="s1">dispose</span><span class="s2">();</span>
+    <span class="s2">}</span>
+<span class="s2">}</span>
+</pre>
+</body>
+</html>

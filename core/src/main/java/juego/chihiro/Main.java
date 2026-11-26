@@ -22,8 +22,12 @@ public class Main extends Game {
     private ControladorEntradas entradas;
     private AdministradorAudio audio;
     private Recursos recursos;
-    private String ultimaDireccion = "127.0.0.1";
+    private String ultimaDireccion;
     private SesionCliente sesion;
+
+    public Main(String direccionInicial) {
+        this.ultimaDireccion = direccionInicial;
+    }
 
     @Override
     public void create() {

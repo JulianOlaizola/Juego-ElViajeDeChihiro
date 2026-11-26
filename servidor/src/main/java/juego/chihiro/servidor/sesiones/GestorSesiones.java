@@ -74,6 +74,37 @@ public class GestorSesiones {
         return vencidas;
     }
 
+    public List<SesionJugador> reservasVencidas(long ahora) {
+        List<SesionJugador> vencidas = new ArrayList<SesionJugador>();
+        for (SesionJugador sesion : sesiones) {
+            if (!sesion.estaLibre() && !sesion.estaConectado()
+                    && ahora - sesion.getUltimaActividadMilis() > Protocolo.TIEMPO_RECONEXION_SERVIDOR_MILIS) {
+                vencidas.add(sesion);
+            }
+        }
+        return vencidas;
+    }
+
+    public long milisParaReconexion(long ahora) {
+        long restante = 0;
+        for (SesionJugador sesion : sesiones) {
+            if (!sesion.estaLibre() && !sesion.estaConectado()) {
+                restante = Math.max(restante,
+                        Protocolo.TIEMPO_RECONEXION_SERVIDOR_MILIS - (ahora - sesion.getUltimaActividadMilis()));
+            }
+        }
+        return restante;
+    }
+
+    public boolean hayReservas() {
+        for (SesionJugador sesion : sesiones) {
+            if (!sesion.estaLibre() && !sesion.estaConectado()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public List<SesionJugador> conectadas() {
         List<SesionJugador> conectadas = new ArrayList<SesionJugador>();
         for (SesionJugador sesion : sesiones) {

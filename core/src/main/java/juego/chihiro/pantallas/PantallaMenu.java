@@ -18,7 +18,7 @@ import juego.chihiro.utiles.Recursos;
 
 public class PantallaMenu extends ScreenAdapter {
     private static final String[] OPCIONES = {
-        "Jugar en esta PC", "Buscar partida en la red", "Conectar por IP", "Instrucciones", "Salir"
+        "Buscar partida en la red", "Conectar por IP", "Instrucciones", "Salir"
     };
 
     private final Main juego;
@@ -61,18 +61,14 @@ public class PantallaMenu extends ScreenAdapter {
 
         if (entradas.consumir(Accion.CONFIRMAR)) {
             if (seleccion == 0) {
-                juego.cambiarPantalla(new PantallaJuego(juego));
-                return false;
-            }
-            if (seleccion == 1) {
                 juego.cambiarPantalla(new PantallaBuscarServidores(juego));
                 return false;
             }
-            if (seleccion == 2) {
+            if (seleccion == 1) {
                 juego.cambiarPantalla(new PantallaConectarIp(juego, juego.getUltimaDireccion()));
                 return false;
             }
-            if (seleccion == 3) {
+            if (seleccion == 2) {
                 juego.cambiarPantalla(new PantallaInstrucciones(juego));
                 return false;
             }
@@ -104,7 +100,7 @@ public class PantallaMenu extends ScreenAdapter {
             recursos.getFuenteMedia().setColor(elegida ? Color.GOLD : Color.WHITE);
             recursos.getFuenteMedia().draw(batch,
                 (elegida ? "> " : "   ") + OPCIONES[i],
-                0f, 290f - i * 40f, Constantes.ANCHO_VISTA, Align.center, false);
+                0f, 280f - i * 44f, Constantes.ANCHO_VISTA, Align.center, false);
         }
         recursos.getFuenteMedia().setColor(Color.WHITE);
 

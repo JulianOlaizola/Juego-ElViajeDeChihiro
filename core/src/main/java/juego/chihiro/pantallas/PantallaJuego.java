@@ -4,10 +4,8 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -21,7 +19,6 @@ import juego.chihiro.entradas.ControladorEntradas;
 import juego.chihiro.hud.Hud;
 import juego.chihiro.mundo.EstadoTina;
 import juego.chihiro.mundo.MapaCasaBanos;
-import juego.chihiro.mundo.ObjetoEnMano;
 import juego.chihiro.mundo.ObjetoInteractivo;
 import juego.chihiro.audio.AdministradorAudio;
 import juego.chihiro.red.Efecto;
@@ -135,19 +132,6 @@ public class PantallaJuego extends ScreenAdapter {
         return true;
     }
 
-    private void dibujarTinasSucias(SpriteBatch batch, InstantaneaPartida estado) {
-        TextureRegion suciedad = recursos.objeto(ObjetoEnMano.SUCIEDAD.getIndiceRegion());
-        for (int i = 0; i < mapa.getTinas().size && i < estado.getTinas().size(); i++) {
-            if (estado.getTinas().get(i).getEstado() != EstadoTina.SUCIA) {
-                continue;
-            }
-            Rectangle area = mapa.getTinas().get(i).getArea();
-            float tamanio = Constantes.TAM_TILE;
-            batch.draw(suciedad, area.x + area.width / 2f - tamanio / 2f, area.y + area.height / 2f - tamanio / 2f,
-                tamanio, tamanio);
-        }
-    }
-
     private boolean atenderMenusDeLaPartida(FasePartida fase) {
         boolean sinPartidaActiva = fase == FasePartida.ESPERANDO_JUGADOR
             || sesion.getEstado() == EstadoConexion.RECONECTANDO;
@@ -245,7 +229,6 @@ public class PantallaJuego extends ScreenAdapter {
         SpriteBatch batch = juego.getBatch();
         batch.setProjectionMatrix(camaraMundo.combined);
         batch.begin();
-        dibujarTinasSucias(batch, estado);
         for (Espiritu espiritu : espiritus) {
             espiritu.dibujar(batch);
         }

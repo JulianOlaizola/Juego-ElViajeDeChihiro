@@ -17,12 +17,15 @@ import juego.chihiro.red.MensajeInvalidoException;
 import juego.chihiro.red.MotivoRechazo;
 import juego.chihiro.red.PaqueteRecibido;
 import juego.chihiro.red.Protocolo;
+import juego.chihiro.red.TipoEvento;
 import juego.chihiro.red.TipoMensaje;
 import juego.chihiro.servidor.fisica.MapaInvalidoException;
 import juego.chihiro.servidor.fisica.MapaServidor;
 import juego.chihiro.servidor.logica.Aviso;
 import juego.chihiro.servidor.logica.JugadorServidor;
 import juego.chihiro.servidor.logica.Partida;
+import juego.chihiro.servidor.logica.PedidoServidor;
+import juego.chihiro.servidor.logica.TinaServidor;
 import juego.chihiro.servidor.sesiones.GestorSesiones;
 import juego.chihiro.servidor.sesiones.SesionJugador;
 import juego.chihiro.utiles.Constantes;
@@ -60,9 +63,9 @@ public class ServidorJuego extends ApplicationAdapter {
 
         Registro.info("Servidor de El Viaje de Chihiro escuchando por UDP en el puerto " + red.getPuerto());
         Registro.info("Mapa cargado: " + mapa.getColisiones().size + " paredes y "
-            + mapa.getInteractivos().size + " objetos interactivos. Box2D se crea al empezar cada partida.");
+                + mapa.getInteractivos().size + " objetos interactivos. Box2D se crea al empezar cada partida.");
         mostrarDirecciones();
-        Registro.info("Esperando jugadores. Comandos disponibles: estado, ayuda, salir");
+        Registro.info("Esperando jugadores. Comandos disponibles: estado, ip, terminar, ayuda, salir");
     }
 
     private String buscarNombreDelEquipo() {
@@ -73,7 +76,7 @@ public class ServidorJuego extends ApplicationAdapter {
         }
     }
 
-    private void mostrarDirecciones() {
+    public void mostrarDirecciones() {
         try {
             List<String> direcciones = InterfacesRed.direccionesLocales();
             if (direcciones.isEmpty()) {
@@ -100,8 +103,10 @@ public class ServidorJuego extends ApplicationAdapter {
         long ahoraMilis = System.currentTimeMillis();
 
         procesarEntrantes();
+        reenviarEventos(ahoraMilis);
         revisarDesconexiones(ahoraMilis);
         actualizarFase();
+        atenderPausas();
         if (partida != null && fase == FasePartida.JUGANDO) {
             simular(delta);
         }
@@ -140,6 +145,9 @@ public class ServidorJuego extends ApplicationAdapter {
             case ENTRADA:
                 recibirEntrada(paquete);
                 break;
+            case ACK:
+                confirmarEvento(paquete);
+                break;
             case DESCONECTAR:
                 desconectar(paquete);
                 break;
@@ -156,16 +164,18 @@ public class ServidorJuego extends ApplicationAdapter {
 
     private void responderDescubrimiento(PaqueteRecibido paquete) {
         red.enviar(new Mensaje(TipoMensaje.ANUNCIO,
-            nombreServidor,
-            String.valueOf(red.getPuerto()),
-            String.valueOf(sesiones.cantidadConectados()),
-            String.valueOf(Constantes.CANTIDAD_JUGADORES)), paquete.getOrigen());
+                nombreServidor,
+                String.valueOf(red.getPuerto()),
+                String.valueOf(sesiones.cantidadConectados()),
+                String.valueOf(Constantes.CANTIDAD_JUGADORES)), paquete.getOrigen());
     }
 
     private void conectar(PaqueteRecibido paquete) throws MensajeInvalidoException {
         String nombre = paquete.getMensaje().campo(0);
         String tokenPrevio = paquete.getMensaje().campo(1);
-        boolean eraConocido = sesiones.buscarPorToken(tokenPrevio) != null;
+        SesionJugador conocida = sesiones.buscarPorToken(tokenPrevio);
+        boolean eraConocido = conocida != null;
+        boolean vuelve = eraConocido && !conocida.estaConectado();
         if (fase != FasePartida.SALA && !eraConocido) {
             red.enviar(new Mensaje(TipoMensaje.RECHAZO, MotivoRechazo.PARTIDA_EN_CURSO.name()), paquete.getOrigen());
             Registro.aviso("Rechazado " + paquete.getOrigen() + ": la partida ya empezó");
@@ -178,16 +188,34 @@ public class ServidorJuego extends ApplicationAdapter {
             return;
         }
         red.enviar(new Mensaje(TipoMensaje.BIENVENIDA, String.valueOf(sesion.getNumero()), sesion.getToken()),
-            paquete.getOrigen());
-        Registro.info("Jugador " + sesion.getNumero() + " (" + sesion.getNombre() + ") conectado desde " + paquete.getOrigen());
+                paquete.getOrigen());
+        if (vuelve) {
+            anunciarRegreso(sesion);
+        } else if (!eraConocido) {
+            Registro.info("Jugador " + sesion.getNumero() + " (" + sesion.getNombre() + ") conectado desde " + paquete.getOrigen());
+        }
+    }
+
+    private void anunciarRegreso(SesionJugador sesion) {
+        Registro.info("Jugador " + sesion.getNumero() + " se reconectó desde " + sesion.getDireccion());
+        difundirEvento(TipoEvento.JUGADOR_RECONECTADO, String.valueOf(sesion.getNumero()));
+        if (fase == FasePartida.ESPERANDO_JUGADOR && !sesiones.hayReservas()) {
+            fase = FasePartida.PAUSA;
+            Registro.info("Están los dos jugadores otra vez: la partida queda en pausa hasta que alguien la reanude");
+        }
     }
 
     private void recibirEntrada(PaqueteRecibido paquete) throws MensajeInvalidoException {
         LectorCampos lector = new LectorCampos(paquete.getMensaje());
         SesionJugador sesion = sesiones.buscarPorToken(lector.texto());
-        if (sesion == null || !sesion.estaConectado()) {
+        if (sesion == null) {
             red.enviar(new Mensaje(TipoMensaje.RECHAZO, MotivoRechazo.SESION_DESCONOCIDA.name()), paquete.getOrigen());
             return;
+        }
+        if (!sesion.estaConectado()) {
+            sesion.tocar(paquete.getOrigen(), System.currentTimeMillis());
+            sesion.setConectado(true);
+            anunciarRegreso(sesion);
         }
         long secuencia = lector.largo();
         float ejeX = lector.decimal();
@@ -196,27 +224,75 @@ public class ServidorJuego extends ApplicationAdapter {
         int pausas = lector.entero();
         boolean listo = lector.bandera();
         sesion.registrarEntrada(secuencia, ejeX, ejeY, interacciones, pausas, listo,
-            paquete.getOrigen(), System.currentTimeMillis());
+                paquete.getOrigen(), System.currentTimeMillis());
+    }
+
+    private void confirmarEvento(PaqueteRecibido paquete) throws MensajeInvalidoException {
+        SesionJugador sesion = sesiones.buscarPorToken(paquete.getMensaje().campo(0));
+        if (sesion != null) {
+            sesion.getCanal().confirmar(paquete.getMensaje().campoLargo(1));
+        }
+    }
+
+    private void enviarEvento(SesionJugador sesion, TipoEvento tipo, String... datos) {
+        if (sesion.estaConectado()) {
+            red.enviar(sesion.getCanal().encolar(tipo, datos), sesion.getDireccion());
+        }
+    }
+
+    private void difundirEvento(TipoEvento tipo, String... datos) {
+        for (SesionJugador sesion : sesiones.conectadas()) {
+            enviarEvento(sesion, tipo, datos);
+        }
+    }
+
+    private void reenviarEventos(long ahora) {
+        for (SesionJugador sesion : sesiones.conectadas()) {
+            for (Mensaje mensaje : sesion.getCanal().paraReenviar(ahora)) {
+                red.enviar(mensaje, sesion.getDireccion());
+            }
+        }
     }
 
     private void desconectar(PaqueteRecibido paquete) throws MensajeInvalidoException {
         SesionJugador sesion = sesiones.buscarPorToken(paquete.getMensaje().campo(0));
         if (sesion != null) {
             Registro.info("Jugador " + sesion.getNumero() + " salió de la partida");
-            quitar(sesion);
+            liberar(sesion);
         }
     }
 
     private void revisarDesconexiones(long ahora) {
         for (SesionJugador sesion : sesiones.vencidas(ahora)) {
             Registro.aviso("Jugador " + sesion.getNumero() + " no responde hace "
-                + (Protocolo.TIEMPO_ESPERA_MILIS / 1000) + " segundos: se lo desconecta");
-            quitar(sesion);
+                    + (Protocolo.TIEMPO_ESPERA_MILIS / 1000) + " segundos");
+            perderConexion(sesion);
+        }
+        for (SesionJugador sesion : sesiones.reservasVencidas(ahora)) {
+            Registro.aviso("Jugador " + sesion.getNumero() + " no volvió a tiempo: se libera su lugar");
+            liberar(sesion);
         }
     }
 
-    private void quitar(SesionJugador sesion) {
+    private void perderConexion(SesionJugador sesion) {
+        boolean partidaEnCurso = fase == FasePartida.JUGANDO
+                || fase == FasePartida.PAUSA
+                || fase == FasePartida.ESPERANDO_JUGADOR;
+        if (!partidaEnCurso) {
+            liberar(sesion);
+            return;
+        }
+        sesion.setConectado(false);
+        fase = FasePartida.ESPERANDO_JUGADOR;
+        difundirEvento(TipoEvento.JUGADOR_DESCONECTADO, String.valueOf(sesion.getNumero()));
+        Registro.aviso("La partida queda en espera: el jugador " + sesion.getNumero() + " puede volver hasta "
+                + (Protocolo.TIEMPO_RECONEXION_SERVIDOR_MILIS / 1000) + " segundos después de su último paquete");
+    }
+
+    private void liberar(SesionJugador sesion) {
+        int numero = sesion.getNumero();
         sesion.liberar();
+        difundirEvento(TipoEvento.JUGADOR_DESCONECTADO, String.valueOf(numero));
         if (fase != FasePartida.SALA) {
             volverALaSala();
         }
@@ -225,23 +301,49 @@ public class ServidorJuego extends ApplicationAdapter {
     private void actualizarFase() {
         if (fase == FasePartida.SALA && sesiones.todosListos()) {
             comenzarPartida();
+        } else if (fase == FasePartida.TERMINADA && sesiones.todosListos()) {
+            Registro.info("Los dos jugadores votaron revancha");
+            comenzarPartida();
+            difundirEvento(TipoEvento.AVISO, "¡Revancha! Empieza un turno nuevo", "PEDIDO_COMPLETO");
+        }
+    }
+
+    private void atenderPausas() {
+        for (SesionJugador sesion : sesiones.conectadas()) {
+            if (!sesion.consumirPedidoDePausa()) {
+                continue;
+            }
+            if (fase == FasePartida.JUGANDO) {
+                fase = FasePartida.PAUSA;
+                difundirEvento(TipoEvento.AVISO, "El jugador " + sesion.getNumero() + " pausó la partida", "NINGUNO");
+                Registro.info("Jugador " + sesion.getNumero() + " pausó la partida");
+            } else if (fase == FasePartida.PAUSA) {
+                fase = FasePartida.JUGANDO;
+                difundirEvento(TipoEvento.AVISO, "El jugador " + sesion.getNumero() + " reanudó la partida", "NINGUNO");
+                Registro.info("Jugador " + sesion.getNumero() + " reanudó la partida");
+            }
         }
     }
 
     private void simular(float delta) {
         for (SesionJugador sesion : sesiones.todas()) {
             partida.aplicarEntrada(sesion.getNumero(), sesion.getEjeX(), sesion.getEjeY(),
-                sesion.getContadorInteraccion());
+                    sesion.getContadorInteraccion());
         }
         partida.actualizar(delta);
         for (Aviso aviso : partida.retirarAvisos()) {
-            String destinatario = aviso.getJugador() == 0 ? "Todos" : "Jugador " + aviso.getJugador();
-            Registro.info(destinatario + ": " + aviso.getTexto());
+            if (aviso.getJugador() == 0) {
+                difundirEvento(TipoEvento.AVISO, aviso.getTexto(), aviso.getEfecto().name());
+            } else {
+                enviarEvento(sesiones.get(aviso.getJugador()), TipoEvento.AVISO, aviso.getTexto(), aviso.getEfecto().name());
+            }
         }
         if (partida.estaTerminada()) {
             fase = FasePartida.TERMINADA;
+            difundirEvento(TipoEvento.FIN_PARTIDA, partida.gano() ? "1" : "0", String.valueOf(partida.getPuntaje()));
+            sesiones.reiniciarListos();
             Registro.info("Partida terminada. " + (partida.gano() ? "Ganaron" : "Perdieron")
-                + " con " + partida.getPuntaje() + " puntos");
+                    + " con " + partida.getPuntaje() + " puntos. Pueden votar revancha desde el juego.");
         }
     }
 
@@ -250,10 +352,12 @@ public class ServidorJuego extends ApplicationAdapter {
         int[] contadores = new int[Constantes.CANTIDAD_JUGADORES];
         for (SesionJugador sesion : sesiones.todas()) {
             contadores[sesion.getNumero() - 1] = sesion.getContadorInteraccion();
+            sesion.descartarPedidosDePausa();
         }
         descartarPartida();
         partida = new Partida(mapa, contadores);
         fase = FasePartida.JUGANDO;
+        difundirEvento(TipoEvento.INICIO_PARTIDA);
         Registro.info("Los dos jugadores están listos: comienza la partida con un mundo Box2D nuevo");
     }
 
@@ -275,8 +379,12 @@ public class ServidorJuego extends ApplicationAdapter {
         InstantaneaPartida instantanea = new InstantaneaPartida();
         instantanea.setSecuencia(++secuenciaEstado);
         instantanea.setFase(fase);
+        instantanea.setSegundosParaReconexion((int) (sesiones.milisParaReconexion(System.currentTimeMillis()) / 1000));
         for (SesionJugador sesion : sesiones.todas()) {
             instantanea.setJugador(sesion.getNumero(), sesion.estaConectado(), sesion.estaListo());
+        }
+        if (partida != null) {
+            completarConLaPartida(instantanea);
         }
         Mensaje mensaje = instantanea.aMensaje();
         for (SesionJugador sesion : sesiones.conectadas()) {
@@ -284,35 +392,77 @@ public class ServidorJuego extends ApplicationAdapter {
         }
     }
 
+    private void completarConLaPartida(InstantaneaPartida instantanea) {
+        instantanea.setPartida(partida.getTiempoRestante(), partida.getPedidosCompletados(),
+                partida.getPedidosFallidos(), partida.getPuntaje(), partida.gano());
+        instantanea.setCaldera(partida.estaLaCalderaEncendida(), partida.estaElAguaCaliente(),
+                partida.getProporcionCaldera());
+        for (int numero = 1; numero <= Constantes.CANTIDAD_JUGADORES; numero++) {
+            JugadorServidor jugador = partida.getJugador(numero);
+            instantanea.setCuerpo(numero, jugador.getCentroX(), jugador.getCentroY(), jugador.getDireccion(),
+                    jugador.estaEnMovimiento(), jugador.getObjetoEnMano());
+        }
+        for (TinaServidor tina : partida.getTinas()) {
+            PedidoServidor pedido = tina.getPedido();
+            instantanea.agregarTina(tina.getEstado(),
+                    pedido != null && pedido.faltaSal(),
+                    pedido != null && pedido.faltaAgua(),
+                    pedido == null ? 0f : pedido.getProporcionRestante());
+        }
+    }
+
+    public void terminarPartida() {
+        if (partida == null || (fase != FasePartida.JUGANDO && fase != FasePartida.PAUSA)) {
+            Registro.aviso("No hay ninguna partida en curso para terminar");
+            return;
+        }
+        Registro.info("Se termina la partida desde la consola");
+        partida.forzarFin();
+        fase = FasePartida.JUGANDO;
+    }
+
     public void imprimirEstado() {
         Registro.info("Fase: " + fase + " | Ticks: " + ticks
-            + " | Recibidos: " + red.getPaquetesRecibidos()
-            + " | Enviados: " + red.getPaquetesEnviados()
-            + " | Descartados: " + red.getPaquetesDescartados()
-            + " | En cola: " + red.getPaquetesEnCola());
+                + " | Recibidos: " + red.getPaquetesRecibidos()
+                + " | Enviados: " + red.getPaquetesEnviados()
+                + " | Descartados: " + red.getPaquetesDescartados()
+                + " | En cola: " + red.getPaquetesEnCola());
         for (SesionJugador sesion : sesiones.todas()) {
             String detalle = sesion.estaConectado()
-                ? sesion.getNombre() + " en " + sesion.getDireccion() + (sesion.estaListo() ? " (listo)" : "")
-                : "libre";
+                    ? sesion.getNombre() + " en " + sesion.getDireccion() + (sesion.estaListo() ? " (listo)" : "")
+                        + " | eventos sin confirmar: " + sesion.getCanal().getPendientes()
+                        + " | reenvíos: " + sesion.getCanal().getReenvios()
+                    : "libre";
             Registro.info("Jugador " + sesion.getNumero() + ": " + detalle);
         }
         if (partida == null) {
             return;
         }
         Registro.info("Tiempo: " + Math.round(partida.getTiempoRestante()) + " s | Pedidos: "
-            + partida.getPedidosCompletados() + " | Fallos: " + partida.getPedidosFallidos()
-            + " | Puntaje: " + partida.getPuntaje());
+                + partida.getPedidosCompletados() + " | Fallos: " + partida.getPedidosFallidos()
+                + " | Puntaje: " + partida.getPuntaje());
         for (int numero = 1; numero <= Constantes.CANTIDAD_JUGADORES; numero++) {
             JugadorServidor jugador = partida.getJugador(numero);
             Registro.info("Cuerpo del jugador " + numero + " en (" + Math.round(jugador.getCentroX()) + ", "
-                + Math.round(jugador.getCentroY()) + ") con " + jugador.getObjetoEnMano().getEtiqueta());
+                    + Math.round(jugador.getCentroY()) + ") con " + jugador.getObjetoEnMano().getEtiqueta());
+        }
+    }
+
+    private void avisarCierre() {
+        Mensaje cierre = new Mensaje(TipoMensaje.DESCONECTAR, "El servidor se cerró");
+        for (SesionJugador sesion : sesiones.conectadas()) {
+            for (int i = 0; i < 3; i++) {
+                red.enviar(cierre, sesion.getDireccion());
+            }
         }
     }
 
     @Override
     public void dispose() {
+        avisarCierre();
         descartarPartida();
         red.cerrar();
         Registro.info("Servidor cerrado.");
+        Registro.cerrarArchivo();
     }
 }

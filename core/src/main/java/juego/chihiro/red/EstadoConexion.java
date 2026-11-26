@@ -4,6 +4,7 @@ public enum EstadoConexion {
     RESOLVIENDO,
     CONECTANDO,
     CONECTADO,
+    RECONECTANDO,
     RECHAZADO,
     PERDIDA,
     CERRADA

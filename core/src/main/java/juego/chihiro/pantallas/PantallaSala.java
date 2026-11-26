@@ -27,20 +27,17 @@ public class PantallaSala extends PantallaBase {
             return;
         }
         sesion.actualizar();
-        if (sesion.getEstado() != EstadoConexion.CONECTADO) {
+        if (!sesion.estaEnPartida()) {
             juego.cambiarPantalla(new PantallaMensaje(juego, "Se cortó la conexión", sesion.getMotivo()));
             return;
         }
-        if (sesion.getInstantanea().getFase() == FasePartida.SALA) {
-            sesion.setEjes(0f, 0f);
-            if (entradas.consumir(Accion.CONFIRMAR)) {
-                sesion.alternarListo();
-            }
-        } else {
-            sesion.setEjes(entradas.ejeHorizontalCombinado(), entradas.ejeVerticalCombinado());
-            if (entradas.consumirInteraccion()) {
-                sesion.pulsarInteraccion();
-            }
+        if (sesion.getEstado() == EstadoConexion.CONECTADO && sesion.getInstantanea().getFase() != FasePartida.SALA) {
+            juego.cambiarPantalla(new PantallaJuego(juego));
+            return;
+        }
+        sesion.setEjes(0f, 0f);
+        if (entradas.consumir(Accion.CONFIRMAR)) {
+            sesion.alternarListo();
         }
         entradas.limpiarAcciones();
         dibujar();
@@ -50,7 +47,8 @@ public class PantallaSala extends PantallaBase {
         InstantaneaPartida instantanea = sesion.getInstantanea();
         SpriteBatch batch = comenzarDibujo();
         titulo(batch, "Sala de espera");
-        linea(batch, recursos.getFuenteChica(), sesion.getDescripcionServidor(), 440f, Color.LIGHT_GRAY);
+        String ping = sesion.getLatenciaMilis() < 0 ? "" : "   -   ping " + sesion.getLatenciaMilis() + " ms";
+        linea(batch, recursos.getFuenteChica(), sesion.getDescripcionServidor() + ping, 440f, Color.LIGHT_GRAY);
         linea(batch, recursos.getFuenteMedia(), "Sos el jugador " + sesion.getNumeroJugador(), 400f, Color.GOLD);
 
         float y = 330f;
@@ -72,15 +70,12 @@ public class PantallaSala extends PantallaBase {
             y -= 44f;
         }
 
-        if (instantanea.getFase() == FasePartida.SALA) {
-            String accion = sesion.estaListo() ? "ENTER para cancelar \"listo\"" : "ENTER cuando estés listo";
-            linea(batch, recursos.getFuenteMedia(), accion, 170f, Color.WHITE);
-            linea(batch, recursos.getFuenteChica(), "La partida empieza cuando los dos jugadores están listos.", 130f, Color.LIGHT_GRAY);
-        } else {
-            linea(batch, recursos.getFuenteMedia(), "¡La partida comenzó en el servidor!", 170f, Color.LIME);
-            linea(batch, recursos.getFuenteChica(),
-                "Movete con WASD o flechas e interactuá con E: el resultado aparece en la consola del servidor.",
-                130f, Color.LIGHT_GRAY);
+        String accion = sesion.estaListo() ? "ENTER para cancelar \"listo\"" : "ENTER cuando estés listo";
+        linea(batch, recursos.getFuenteMedia(), accion, 170f, Color.WHITE);
+        linea(batch, recursos.getFuenteChica(), "La partida empieza cuando los dos jugadores están listos.", 130f, Color.LIGHT_GRAY);
+        if (sesion.getEstado() == EstadoConexion.RECONECTANDO) {
+            linea(batch, recursos.getFuenteMedia(), "Se perdió la señal del servidor. Reconectando... "
+                + sesion.segundosReconectando() + " s", 90f, Color.ORANGE);
         }
         pie(batch, "ESC para salir de la sala");
         batch.end();

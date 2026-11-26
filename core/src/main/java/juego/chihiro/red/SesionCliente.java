@@ -21,13 +21,20 @@ public class SesionCliente {
     private long ultimoIntentoMilis;
     private long ultimoPaqueteMilis;
     private long ultimaEntradaMilis;
+    private long inicioReconexionMilis;
+    private long ultimoPingMilis;
+    private long latenciaMilis = -1;
     private long secuenciaEntrada;
     private InstantaneaPartida instantanea = new InstantaneaPartida();
     private boolean hayInstantanea;
+    private final ReceptorEventos eventos = new ReceptorEventos();
+    private long instantaneasRecibidas;
+    private long instantaneasDescartadas;
 
     private float ejeX;
     private float ejeY;
     private int contadorInteraccion;
+    private int contadorPausa;
     private boolean listo;
 
     public SesionCliente(InetSocketAddress servidor, String descripcionServidor, String nombreJugador) throws SocketException {
@@ -60,9 +67,15 @@ public class SesionCliente {
             reintentarConexion(ahora);
         } else if (estado == EstadoConexion.CONECTADO) {
             enviarEntrada(ahora);
+            medirLatencia(ahora);
             if (ahora - ultimoPaqueteMilis > Protocolo.TIEMPO_ESPERA_MILIS) {
-                perder("El servidor dejó de responder");
+                estado = EstadoConexion.RECONECTANDO;
+                inicioReconexionMilis = ahora;
+                ultimoIntentoMilis = 0;
+                motivo = "El servidor dejó de responder";
             }
+        } else if (estado == EstadoConexion.RECONECTANDO) {
+            reintentarReconexion(ahora);
         }
     }
 
@@ -94,6 +107,33 @@ public class SesionCliente {
         cliente.enviar(new Mensaje(TipoMensaje.CONECTAR, nombreJugador, token), servidor);
     }
 
+    private void medirLatencia(long ahora) {
+        if (ahora - ultimoPingMilis < Protocolo.INTERVALO_PING_MILIS) {
+            return;
+        }
+        ultimoPingMilis = ahora;
+        cliente.enviar(new Mensaje(TipoMensaje.PING, String.valueOf(System.nanoTime())), servidor);
+    }
+
+    private void registrarPong(Mensaje pong) throws MensajeInvalidoException {
+        long medida = (System.nanoTime() - pong.campoLargo(0)) / 1_000_000L;
+        if (medida < 0) {
+            return;
+        }
+        latenciaMilis = latenciaMilis < 0 ? medida : (latenciaMilis * 3 + medida) / 4;
+    }
+
+    private void reintentarReconexion(long ahora) {
+        if (ahora - inicioReconexionMilis > Protocolo.TIEMPO_RECONEXION_CLIENTE_MILIS) {
+            perder("No se pudo volver a conectar con el servidor");
+            return;
+        }
+        if (ahora - ultimoIntentoMilis >= Protocolo.INTERVALO_REINTENTO_RECONEXION_MILIS) {
+            ultimoIntentoMilis = ahora;
+            cliente.enviar(new Mensaje(TipoMensaje.CONECTAR, nombreJugador, token), servidor);
+        }
+    }
+
     private void recibir(long ahora) {
         PaqueteRecibido paquete;
         while ((paquete = cliente.siguiente()) != null) {
@@ -112,8 +152,12 @@ public class SesionCliente {
     private void atender(Mensaje mensaje) throws MensajeInvalidoException {
         switch (mensaje.tipo()) {
             case BIENVENIDA:
+                String tokenNuevo = mensaje.campo(1);
+                if (!tokenNuevo.equals(token)) {
+                    eventos.reiniciar();
+                }
                 numeroJugador = mensaje.campoEntero(0);
-                token = mensaje.campo(1);
+                token = tokenNuevo;
                 estado = EstadoConexion.CONECTADO;
                 motivo = "";
                 break;
@@ -122,19 +166,36 @@ public class SesionCliente {
                 estado = EstadoConexion.RECHAZADO;
                 motivo = rechazo == null ? "El servidor rechazó la conexión" : rechazo.getDescripcion();
                 break;
+            case DESCONECTAR:
+                perder(mensaje.cantidadCampos() > 0 ? mensaje.campo(0) : "El servidor cerró la conexión");
+                break;
             case ESTADO:
-                InstantaneaPartida nueva = InstantaneaPartida.desdeMensaje(mensaje);
-                if (!hayInstantanea || nueva.getSecuencia() > instantanea.getSecuencia()) {
-                    if (nueva.getFase() != instantanea.getFase()) {
-                        listo = false;
-                    }
-                    instantanea = nueva;
-                    hayInstantanea = true;
-                }
+                recibirInstantanea(InstantaneaPartida.desdeMensaje(mensaje));
+                break;
+            case PONG:
+                registrarPong(mensaje);
+                break;
+            case EVENTO:
+                EventoRed evento = EventoRed.desdeMensaje(mensaje);
+                cliente.enviar(new Mensaje(TipoMensaje.ACK, token, String.valueOf(evento.getId())), servidor);
+                eventos.recibir(evento);
                 break;
             default:
                 break;
         }
+    }
+
+    private void recibirInstantanea(InstantaneaPartida nueva) {
+        instantaneasRecibidas++;
+        if (hayInstantanea && nueva.getSecuencia() <= instantanea.getSecuencia()) {
+            instantaneasDescartadas++;
+            return;
+        }
+        if (nueva.getFase() != instantanea.getFase()) {
+            listo = false;
+        }
+        instantanea = nueva;
+        hayInstantanea = true;
     }
 
     private void enviarEntrada(long ahora) {
@@ -144,13 +205,13 @@ public class SesionCliente {
         ultimaEntradaMilis = ahora;
         secuenciaEntrada++;
         cliente.enviar(new Mensaje(TipoMensaje.ENTRADA,
-            token,
-            String.valueOf(secuenciaEntrada),
-            String.valueOf(ejeX),
-            String.valueOf(ejeY),
-            String.valueOf(contadorInteraccion),
-            "0",
-            InstantaneaPartida.bandera(listo)), servidor);
+                token,
+                String.valueOf(secuenciaEntrada),
+                String.valueOf(ejeX),
+                String.valueOf(ejeY),
+                String.valueOf(contadorInteraccion),
+                String.valueOf(contadorPausa),
+                InstantaneaPartida.bandera(listo)), servidor);
     }
 
     private void perder(String causa) {
@@ -159,7 +220,21 @@ public class SesionCliente {
     }
 
     private boolean sigueActiva() {
-        return estado == EstadoConexion.CONECTANDO || estado == EstadoConexion.CONECTADO;
+        return estado == EstadoConexion.CONECTANDO
+            || estado == EstadoConexion.CONECTADO
+            || estado == EstadoConexion.RECONECTANDO;
+    }
+
+    public boolean estaEnPartida() {
+        return estado == EstadoConexion.CONECTADO || estado == EstadoConexion.RECONECTANDO;
+    }
+
+    public int segundosReconectando() {
+        if (estado != EstadoConexion.RECONECTANDO) {
+            return 0;
+        }
+        long restante = Protocolo.TIEMPO_RECONEXION_CLIENTE_MILIS - (System.currentTimeMillis() - inicioReconexionMilis);
+        return (int) Math.max(0, restante / 1000);
     }
 
     public void setEjes(float x, float y) {
@@ -171,6 +246,10 @@ public class SesionCliente {
         contadorInteraccion++;
     }
 
+    public void pedirPausa() {
+        contadorPausa++;
+    }
+
     public void alternarListo() {
         listo = !listo;
     }
@@ -180,7 +259,7 @@ public class SesionCliente {
     }
 
     public void cerrar() {
-        if (estado == EstadoConexion.CONECTADO && servidor != null) {
+        if (estaEnPartida() && servidor != null) {
             for (int i = 0; i < 3; i++) {
                 cliente.enviar(new Mensaje(TipoMensaje.DESCONECTAR, token), servidor);
             }
@@ -211,6 +290,26 @@ public class SesionCliente {
 
     public boolean tieneInstantanea() {
         return hayInstantanea;
+    }
+
+    public long getLatenciaMilis() {
+        return latenciaMilis;
+    }
+
+    public EventoRed siguienteEvento() {
+        return eventos.siguiente();
+    }
+
+    public long getEventosDuplicados() {
+        return eventos.getDuplicados();
+    }
+
+    public long getInstantaneasRecibidas() {
+        return instantaneasRecibidas;
+    }
+
+    public long getInstantaneasDescartadas() {
+        return instantaneasDescartadas;
     }
 
     public int getIntentosConexion() {

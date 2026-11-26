@@ -3,7 +3,7 @@ package juego.chihiro.red;
 public enum MotivoRechazo {
     SALA_LLENA("La partida ya tiene dos jugadores"),
     PARTIDA_EN_CURSO("La partida ya empezó y no hay lugar libre"),
-    SESION_DESCONOCIDA("El servidor no reconoce esta sesión");
+    SESION_DESCONOCIDA("El servidor ya no reconoce esta sesión (puede que se haya reiniciado)");
 
     private final String descripcion;
 

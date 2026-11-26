@@ -82,10 +82,10 @@ public class JugadorServidor {
         float ancho = Constantes.ANCHO_HITBOX + Constantes.MARGEN_ZONA_INTERACCION;
         float alto = Constantes.ALTO_HITBOX + Constantes.MARGEN_ZONA_INTERACCION;
         return zonaInteraccion.set(
-            getCentroX() - ancho / 2f + direccion.getX() * Constantes.ALCANCE_INTERACCION,
-            getCentroY() - alto / 2f + direccion.getY() * Constantes.ALCANCE_INTERACCION,
-            ancho,
-            alto);
+                getCentroX() - ancho / 2f + direccion.getX() * Constantes.ALCANCE_INTERACCION,
+                getCentroY() - alto / 2f + direccion.getY() * Constantes.ALCANCE_INTERACCION,
+                ancho,
+                alto);
     }
 
     public float getCentroX() {

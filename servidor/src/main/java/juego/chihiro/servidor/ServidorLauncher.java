@@ -12,11 +12,13 @@ public final class ServidorLauncher {
     private static final int SALIDA_PUERTO_OCUPADO = 1;
     private static final int SALIDA_ARGUMENTO_INVALIDO = 2;
     private static final int SALIDA_ERROR_DE_RED = 3;
+    private static final String ARCHIVO_REGISTRO = "servidor.log";
 
     private ServidorLauncher() {
     }
 
     public static void main(String[] args) {
+        Protocolo.preferirIPv4();
         int puerto;
         try {
             puerto = args.length > 0 ? Protocolo.leerPuerto(args[0]) : Protocolo.PUERTO_POR_DEFECTO;
@@ -26,6 +28,7 @@ public final class ServidorLauncher {
             return;
         }
 
+        Registro.abrirArchivo(ARCHIVO_REGISTRO);
         ServidorUdp red;
         try {
             red = new ServidorUdp(puerto);

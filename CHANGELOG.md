@@ -5,8 +5,57 @@ Seguimos el formato de Keep a Changelog (https://keepachangelog.com/es-ES/1.0.0/
 y el versionado semántico (https://semver.org/lang/es/).
 
 ## [Unreleased]
+
+## [1.0.0] - 2026-11-19
 ### Agregado
-- (Acá van las próximas funcionalidades del juego.)
+- Módulo `servidor`: aplicación sin ventana (backend headless de libGDX) con su propio
+  bucle de 60 ticks por segundo y consola de comandos (`estado`, `ip`, `terminar`, `ayuda`,
+  `salir`).
+- Comunicación exclusivamente por UDP con un protocolo de texto propio
+  (`CHIHIRO;versión;TIPO;campos`) compartido entre cliente y servidor en `core`.
+- Hilos de recepción en el cliente y en el servidor que dejan los paquetes en una cola
+  segura, para que el render y el bucle del servidor nunca se bloqueen.
+- Box2D en el servidor: paredes estáticas, objetos interactivos como sensores, jugadores
+  dinámicos y paso fijo de 1/60 s. El mapa se lee del `.tmx` sin cargar gráficos.
+- Lógica de la partida en el servidor: pedidos, tinas, caldera, tiempo, puntaje,
+  victoria y derrota.
+- Pasar y sacar objetos entre jugadores mirándose e interactuando.
+- Búsqueda de servidores en la red local por broadcast y conexión escribiendo la IP.
+- Sala de espera con asignación de jugador 1 y 2, rechazo de un tercer jugador y
+  confirmación de "listo".
+- Estado completo de la partida enviado 20 veces por segundo con número de secuencia;
+  el cliente descarta los paquetes viejos e interpola las posiciones.
+- Eventos confiables sobre UDP (avisos, inicio y fin de partida, desconexiones) con id,
+  confirmación (ACK), reenvío cada 200 ms y descarte de duplicados.
+- Pausa compartida entre los dos jugadores.
+- Pantalla de resultado con puntaje, pedidos, fallos y tiempo sobrante.
+- Revancha: los dos jugadores votan y empieza una partida nueva sin cerrar ninguna
+  aplicación.
+- Manejo de desconexiones: el servidor espera 30 segundos a un jugador caído y el
+  cliente reintenta 20 segundos si se cae el servidor; al cerrar el servidor se avisa
+  a los clientes.
+- Manejo de errores: puerto ocupado, puerto inválido, paquetes inválidos, IP
+  inexistente y servidor que no responde, siempre con un mensaje claro.
+- Medición del ping en el HUD y registro del servidor en `servidor.log`.
+- Tarea `gradlew jars`, que genera `ElViajeDeChihiro-Cliente.jar` y
+  `ElViajeDeChihiro-Servidor.jar` en `entrega/` junto con scripts `.bat` y `.sh`.
+- Documentación de red en `docs/wiki`, publicada también en la Wiki.
+
+### Cambiado
+- El cliente ya no simula el juego: manda sus teclas y dibuja lo que recibe. El
+  cooperativo local en un solo teclado se reemplazó por el juego en red.
+- Menú principal: "Buscar partida en la red", "Conectar por IP", "Instrucciones" y "Salir".
+- HUD alimentado por el estado que llega del servidor.
+- Sonidos disparados por los eventos que manda el servidor.
+- La ventana del cliente ya no se pausa sola al perder el foco: la pausa la decide el
+  servidor para los dos jugadores.
+- Los `.jar` ya no llevan la versión en el nombre.
+
+### Eliminado
+- `GestorInteracciones`, `GestorPedidos`, `Tina`, `Pedido` y `EstadoPartida` del
+  cliente: esa lógica ahora vive en el servidor.
+- Comentarios de la plantilla en los archivos de Gradle, en `gradle.properties` y en el
+  launcher de escritorio (se conserva el aviso de licencia de `StartupHelper.java`).
 
 ## [0.2.0] - 2026-10-09
 ### Agregado

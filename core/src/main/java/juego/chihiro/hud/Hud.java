@@ -25,7 +25,6 @@ public class Hud {
     private static final Color VERDE = new Color(0.45f, 0.82f, 0.55f, 0.95f);
     private static final Color ROJO = new Color(0.92f, 0.42f, 0.38f, 0.95f);
     private static final Color NARANJA = new Color(0.95f, 0.62f, 0.25f, 0.95f);
-    private static final Color MARRON = new Color(0.82f, 0.62f, 0.38f, 1f);
 
     private final Recursos recursos;
     private final AdministradorAudio audio;
@@ -90,10 +89,6 @@ public class Hud {
 
         for (InstantaneaPartida.DatosTina tina : estado.getTinas()) {
             indice++;
-            if (tina.getEstado() == EstadoTina.SUCIA) {
-                y = dibujarTinaSucia(batch, indice, y);
-                continue;
-            }
             if (tina.getEstado() != EstadoTina.OCUPADA) {
                 continue;
             }
@@ -116,22 +111,10 @@ public class Hud {
 
             float proporcion = tina.getProporcion();
             barra(batch, MARGEN + 8f, y + 10f, ANCHO_TARJETA - 16f, 7f, proporcion,
-                proporcion < 0.3f ? ROJO : VERDE);
+                  proporcion < 0.3f ? ROJO : VERDE);
 
             y -= alto + 8f;
         }
-    }
-
-    private float dibujarTinaSucia(SpriteBatch batch, int indice, float yPedido) {
-        float alto = 30f;
-        float y = yPedido + 56f - alto;
-        panel(batch, MARGEN, y, ANCHO_TARJETA, alto, FONDO);
-        panel(batch, MARGEN, y, 4f, alto, MARRON);
-        BitmapFont fuente = recursos.getFuenteChica();
-        fuente.setColor(MARRON);
-        fuente.draw(batch, "Tina " + indice + " sucia: limpiala", MARGEN + 10f, y + alto - 9f);
-        fuente.setColor(Color.WHITE);
-        return y - 8f - 56f;
     }
 
     private void dibujarCaldera(SpriteBatch batch, InstantaneaPartida estado) {

@@ -10,6 +10,8 @@ public enum TipoMensaje {
     RECHAZO,
     ENTRADA,
     ESTADO,
+    EVENTO,
+    ACK,
     DESCONECTAR;
 
     public static TipoMensaje desdeTexto(String texto) {

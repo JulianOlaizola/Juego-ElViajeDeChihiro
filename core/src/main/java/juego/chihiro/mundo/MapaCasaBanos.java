@@ -17,6 +17,7 @@ public class MapaCasaBanos {
     private final int[] capasVisibles;
     private final Array<Rectangle> colisiones = new Array<>();
     private final Array<ObjetoInteractivo> interactivos = new Array<>();
+    private final Array<ObjetoInteractivo> tinas = new Array<>();
     private final Vector2 aparicionJugador1 = new Vector2();
     private final Vector2 aparicionJugador2 = new Vector2();
     private final float ancho;
@@ -72,27 +73,13 @@ public class MapaCasaBanos {
             } else if (tipo == TipoInteractivo.SPAWN_JUGADOR_2) {
                 aparicionJugador2.set(area.x, area.y);
             } else {
-                interactivos.add(new ObjetoInteractivo(objeto.getName(), tipo, area));
+                ObjetoInteractivo interactivo = new ObjetoInteractivo(objeto.getName(), tipo, area);
+                interactivos.add(interactivo);
+                if (tipo == TipoInteractivo.TINA) {
+                    tinas.add(interactivo);
+                }
             }
         }
-    }
-
-    public boolean choca(Rectangle rectangulo) {
-        for (Rectangle solido : colisiones) {
-            if (solido.overlaps(rectangulo)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public ObjetoInteractivo objetoEn(Rectangle zona) {
-        for (ObjetoInteractivo objeto : interactivos) {
-            if (objeto.getArea().overlaps(zona)) {
-                return objeto;
-            }
-        }
-        return null;
     }
 
     public TiledMap getMapa() {
@@ -109,6 +96,10 @@ public class MapaCasaBanos {
 
     public Array<ObjetoInteractivo> getInteractivos() {
         return interactivos;
+    }
+
+    public Array<ObjetoInteractivo> getTinas() {
+        return tinas;
     }
 
     public Vector2 getAparicionJugador1() {
