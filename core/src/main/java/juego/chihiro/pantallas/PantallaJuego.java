@@ -1,11 +1,14 @@
 package juego.chihiro.pantallas;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -20,6 +23,7 @@ import juego.chihiro.hud.Hud;
 import juego.chihiro.mundo.EstadoTina;
 import juego.chihiro.mundo.MapaCasaBanos;
 import juego.chihiro.mundo.ObjetoInteractivo;
+import juego.chihiro.mundo.TipoInteractivo;
 import juego.chihiro.audio.AdministradorAudio;
 import juego.chihiro.red.Efecto;
 import juego.chihiro.red.EstadoConexion;
@@ -49,11 +53,13 @@ public class PantallaJuego extends ScreenAdapter {
     private final Espiritu[] espiritus;
     private final Hud hud;
     private final DepuradorColisiones depurador = new DepuradorColisiones();
+    private final ObjetoInteractivo caldera;
 
     private boolean mostrarDepuracion;
     private boolean camaraUbicada;
     private String mensaje = "";
     private float tiempoMensaje;
+    private float tiempoVapor;
 
     public PantallaJuego(Main juego) {
         this.juego = juego;
@@ -79,6 +85,16 @@ public class PantallaJuego extends ScreenAdapter {
             espiritus[i] = new Espiritu(x, y, recursos);
         }
         hud = new Hud(recursos, juego.getAudio(), vistaHud, camaraHud);
+        caldera = buscarCaldera();
+    }
+
+    private ObjetoInteractivo buscarCaldera() {
+        for (ObjetoInteractivo objeto : mapa.getInteractivos()) {
+            if (objeto.getTipo() == TipoInteractivo.CALDERA) {
+                return objeto;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -126,10 +142,39 @@ public class PantallaJuego extends ScreenAdapter {
             jugador.actualizar(delta, estado.getJugador(jugador.getNumero()));
         }
         for (int i = 0; i < espiritus.length && i < estado.getTinas().size(); i++) {
-            espiritus[i].actualizar(delta, estado.getTinas().get(i).getEstado() == EstadoTina.OCUPADA);
+            InstantaneaPartida.DatosTina tina = estado.getTinas().get(i);
+            espiritus[i].setFila(tina.getTipo().getFila());
+            espiritus[i].actualizar(delta, tina.getEstado() == EstadoTina.OCUPADA);
         }
         seguirConLaCamara(delta);
         return true;
+    }
+
+    private void dibujarTinasSucias(SpriteBatch batch, InstantaneaPartida estado) {
+        TextureRegion suciedad = recursos.objeto(Constantes.REGION_TINA_SUCIA);
+        for (int i = 0; i < mapa.getTinas().size && i < estado.getTinas().size(); i++) {
+            if (estado.getTinas().get(i).getEstado() != EstadoTina.SUCIA) {
+                continue;
+            }
+            Rectangle area = mapa.getTinas().get(i).getArea();
+            batch.draw(suciedad, area.x, area.y, area.width, area.height);
+        }
+    }
+
+    private void dibujarVapor(SpriteBatch batch, InstantaneaPartida estado) {
+        if (caldera == null || !estado.estaElAguaCaliente()) {
+            return;
+        }
+        tiempoVapor += Gdx.graphics.getDeltaTime();
+        TextureRegion vapor = recursos.objeto(Constantes.REGION_VAPOR);
+        Rectangle area = caldera.getArea();
+        for (int i = 0; i < 3; i++) {
+            float fase = (tiempoVapor * 0.6f + i / 3f) % 1f;
+            batch.setColor(1f, 1f, 1f, 1f - fase);
+            batch.draw(vapor, area.x + area.width * (0.2f + 0.3f * i) - Constantes.TAM_TILE / 2f,
+                area.y + area.height - 8f + fase * 28f, Constantes.TAM_TILE, Constantes.TAM_TILE);
+        }
+        batch.setColor(Color.WHITE);
     }
 
     private boolean atenderMenusDeLaPartida(FasePartida fase) {
@@ -229,12 +274,14 @@ public class PantallaJuego extends ScreenAdapter {
         SpriteBatch batch = juego.getBatch();
         batch.setProjectionMatrix(camaraMundo.combined);
         batch.begin();
+        dibujarTinasSucias(batch, estado);
         for (Espiritu espiritu : espiritus) {
             espiritu.dibujar(batch);
         }
         for (Jugador jugador : jugadores) {
             jugador.dibujar(batch);
         }
+        dibujarVapor(batch, estado);
         batch.end();
 
         if (mostrarDepuracion) {

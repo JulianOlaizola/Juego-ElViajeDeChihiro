@@ -5,6 +5,7 @@ public enum TipoInteractivo {
     CALDERA("caldera"),
     TINA("tina"),
     DEPOSITO_SUCIEDAD("deposito_suciedad"),
+    ESTANTE_HIERBAS("estante_hierbas"),
     SPAWN_JUGADOR_1("spawn_jugador_1"),
     SPAWN_JUGADOR_2("spawn_jugador_2");
 

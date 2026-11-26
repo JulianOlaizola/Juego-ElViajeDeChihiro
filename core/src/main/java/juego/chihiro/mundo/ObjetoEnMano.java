@@ -4,7 +4,8 @@ public enum ObjetoEnMano {
     NADA(3, "Nada"),
     SAL(0, "Sales"),
     BALDE_AGUA(1, "Balde de agua"),
-    SUCIEDAD(2, "Suciedad");
+    SUCIEDAD(2, "Suciedad"),
+    HIERBAS(4, "Hierbas");
 
     private final int indiceRegion;
     private final String etiqueta;

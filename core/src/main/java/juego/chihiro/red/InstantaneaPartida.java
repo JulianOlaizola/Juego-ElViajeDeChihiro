@@ -6,6 +6,7 @@ import java.util.List;
 import juego.chihiro.entidades.Direccion;
 import juego.chihiro.mundo.EstadoTina;
 import juego.chihiro.mundo.ObjetoEnMano;
+import juego.chihiro.mundo.TipoEspiritu;
 import juego.chihiro.utiles.Constantes;
 
 public class InstantaneaPartida {
@@ -57,8 +58,10 @@ public class InstantaneaPartida {
         campos.add(String.valueOf(tinas.size()));
         for (DatosTina tina : tinas) {
             campos.add(String.valueOf(tina.estado.ordinal()));
+            campos.add(String.valueOf(tina.tipo.ordinal()));
             campos.add(bandera(tina.faltaSal));
             campos.add(bandera(tina.faltaAgua));
+            campos.add(bandera(tina.faltaHierbas));
             campos.add(decimal(tina.proporcion));
         }
         return new Mensaje(TipoMensaje.ESTADO, campos.toArray(new String[0]));
@@ -98,8 +101,10 @@ public class InstantaneaPartida {
         for (int i = 0; i < cantidadTinas; i++) {
             DatosTina tina = new DatosTina();
             tina.estado = elemento(EstadoTina.values(), lector.entero());
+            tina.tipo = elemento(TipoEspiritu.values(), lector.entero());
             tina.faltaSal = lector.bandera();
             tina.faltaAgua = lector.bandera();
+            tina.faltaHierbas = lector.bandera();
             tina.proporcion = lector.decimal();
             instantanea.tinas.add(tina);
         }
@@ -217,11 +222,14 @@ public class InstantaneaPartida {
         return jugadores[numeroJugador - 1];
     }
 
-    public void agregarTina(EstadoTina estado, boolean faltaSal, boolean faltaAgua, float proporcion) {
+    public void agregarTina(EstadoTina estado, TipoEspiritu tipo, boolean faltaSal, boolean faltaAgua,
+                            boolean faltaHierbas, float proporcion) {
         DatosTina tina = new DatosTina();
         tina.estado = estado;
+        tina.tipo = tipo;
         tina.faltaSal = faltaSal;
         tina.faltaAgua = faltaAgua;
+        tina.faltaHierbas = faltaHierbas;
         tina.proporcion = proporcion;
         tinas.add(tina);
     }
@@ -266,12 +274,22 @@ public class InstantaneaPartida {
 
     public static class DatosTina {
         private EstadoTina estado = EstadoTina.LIBRE;
+        private TipoEspiritu tipo = TipoEspiritu.COMUN;
         private boolean faltaSal;
         private boolean faltaAgua;
+        private boolean faltaHierbas;
         private float proporcion;
 
         public EstadoTina getEstado() {
             return estado;
+        }
+
+        public TipoEspiritu getTipo() {
+            return tipo;
+        }
+
+        public boolean faltaHierbas() {
+            return faltaHierbas;
         }
 
         public boolean faltaSal() {

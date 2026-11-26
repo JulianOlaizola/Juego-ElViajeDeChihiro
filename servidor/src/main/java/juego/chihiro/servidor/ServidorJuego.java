@@ -8,6 +8,7 @@ import java.util.List;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 
+import juego.chihiro.mundo.TipoEspiritu;
 import juego.chihiro.red.FasePartida;
 import juego.chihiro.red.InstantaneaPartida;
 import juego.chihiro.red.InterfacesRed;
@@ -63,7 +64,7 @@ public class ServidorJuego extends ApplicationAdapter {
 
         Registro.info("Servidor de El Viaje de Chihiro escuchando por UDP en el puerto " + red.getPuerto());
         Registro.info("Mapa cargado: " + mapa.getColisiones().size + " paredes y "
-                + mapa.getInteractivos().size + " objetos interactivos. Box2D se crea al empezar cada partida.");
+            + mapa.getInteractivos().size + " objetos interactivos. Box2D se crea al empezar cada partida.");
         mostrarDirecciones();
         Registro.info("Esperando jugadores. Comandos disponibles: estado, ip, terminar, ayuda, salir");
     }
@@ -164,10 +165,10 @@ public class ServidorJuego extends ApplicationAdapter {
 
     private void responderDescubrimiento(PaqueteRecibido paquete) {
         red.enviar(new Mensaje(TipoMensaje.ANUNCIO,
-                nombreServidor,
-                String.valueOf(red.getPuerto()),
-                String.valueOf(sesiones.cantidadConectados()),
-                String.valueOf(Constantes.CANTIDAD_JUGADORES)), paquete.getOrigen());
+            nombreServidor,
+            String.valueOf(red.getPuerto()),
+            String.valueOf(sesiones.cantidadConectados()),
+            String.valueOf(Constantes.CANTIDAD_JUGADORES)), paquete.getOrigen());
     }
 
     private void conectar(PaqueteRecibido paquete) throws MensajeInvalidoException {
@@ -188,7 +189,7 @@ public class ServidorJuego extends ApplicationAdapter {
             return;
         }
         red.enviar(new Mensaje(TipoMensaje.BIENVENIDA, String.valueOf(sesion.getNumero()), sesion.getToken()),
-                paquete.getOrigen());
+            paquete.getOrigen());
         if (vuelve) {
             anunciarRegreso(sesion);
         } else if (!eraConocido) {
@@ -224,7 +225,7 @@ public class ServidorJuego extends ApplicationAdapter {
         int pausas = lector.entero();
         boolean listo = lector.bandera();
         sesion.registrarEntrada(secuencia, ejeX, ejeY, interacciones, pausas, listo,
-                paquete.getOrigen(), System.currentTimeMillis());
+            paquete.getOrigen(), System.currentTimeMillis());
     }
 
     private void confirmarEvento(PaqueteRecibido paquete) throws MensajeInvalidoException {
@@ -265,7 +266,7 @@ public class ServidorJuego extends ApplicationAdapter {
     private void revisarDesconexiones(long ahora) {
         for (SesionJugador sesion : sesiones.vencidas(ahora)) {
             Registro.aviso("Jugador " + sesion.getNumero() + " no responde hace "
-                    + (Protocolo.TIEMPO_ESPERA_MILIS / 1000) + " segundos");
+                + (Protocolo.TIEMPO_ESPERA_MILIS / 1000) + " segundos");
             perderConexion(sesion);
         }
         for (SesionJugador sesion : sesiones.reservasVencidas(ahora)) {
@@ -276,8 +277,8 @@ public class ServidorJuego extends ApplicationAdapter {
 
     private void perderConexion(SesionJugador sesion) {
         boolean partidaEnCurso = fase == FasePartida.JUGANDO
-                || fase == FasePartida.PAUSA
-                || fase == FasePartida.ESPERANDO_JUGADOR;
+            || fase == FasePartida.PAUSA
+            || fase == FasePartida.ESPERANDO_JUGADOR;
         if (!partidaEnCurso) {
             liberar(sesion);
             return;
@@ -286,7 +287,7 @@ public class ServidorJuego extends ApplicationAdapter {
         fase = FasePartida.ESPERANDO_JUGADOR;
         difundirEvento(TipoEvento.JUGADOR_DESCONECTADO, String.valueOf(sesion.getNumero()));
         Registro.aviso("La partida queda en espera: el jugador " + sesion.getNumero() + " puede volver hasta "
-                + (Protocolo.TIEMPO_RECONEXION_SERVIDOR_MILIS / 1000) + " segundos después de su último paquete");
+            + (Protocolo.TIEMPO_RECONEXION_SERVIDOR_MILIS / 1000) + " segundos después de su último paquete");
     }
 
     private void liberar(SesionJugador sesion) {
@@ -328,7 +329,7 @@ public class ServidorJuego extends ApplicationAdapter {
     private void simular(float delta) {
         for (SesionJugador sesion : sesiones.todas()) {
             partida.aplicarEntrada(sesion.getNumero(), sesion.getEjeX(), sesion.getEjeY(),
-                    sesion.getContadorInteraccion());
+                sesion.getContadorInteraccion());
         }
         partida.actualizar(delta);
         for (Aviso aviso : partida.retirarAvisos()) {
@@ -343,7 +344,7 @@ public class ServidorJuego extends ApplicationAdapter {
             difundirEvento(TipoEvento.FIN_PARTIDA, partida.gano() ? "1" : "0", String.valueOf(partida.getPuntaje()));
             sesiones.reiniciarListos();
             Registro.info("Partida terminada. " + (partida.gano() ? "Ganaron" : "Perdieron")
-                    + " con " + partida.getPuntaje() + " puntos. Pueden votar revancha desde el juego.");
+                + " con " + partida.getPuntaje() + " puntos. Pueden votar revancha desde el juego.");
         }
     }
 
@@ -394,20 +395,22 @@ public class ServidorJuego extends ApplicationAdapter {
 
     private void completarConLaPartida(InstantaneaPartida instantanea) {
         instantanea.setPartida(partida.getTiempoRestante(), partida.getPedidosCompletados(),
-                partida.getPedidosFallidos(), partida.getPuntaje(), partida.gano());
+            partida.getPedidosFallidos(), partida.getPuntaje(), partida.gano());
         instantanea.setCaldera(partida.estaLaCalderaEncendida(), partida.estaElAguaCaliente(),
-                partida.getProporcionCaldera());
+            partida.getProporcionCaldera());
         for (int numero = 1; numero <= Constantes.CANTIDAD_JUGADORES; numero++) {
             JugadorServidor jugador = partida.getJugador(numero);
             instantanea.setCuerpo(numero, jugador.getCentroX(), jugador.getCentroY(), jugador.getDireccion(),
-                    jugador.estaEnMovimiento(), jugador.getObjetoEnMano());
+                jugador.estaEnMovimiento(), jugador.getObjetoEnMano());
         }
         for (TinaServidor tina : partida.getTinas()) {
             PedidoServidor pedido = tina.getPedido();
             instantanea.agregarTina(tina.getEstado(),
-                    pedido != null && pedido.faltaSal(),
-                    pedido != null && pedido.faltaAgua(),
-                    pedido == null ? 0f : pedido.getProporcionRestante());
+                pedido == null ? TipoEspiritu.COMUN : pedido.getTipo(),
+                pedido != null && pedido.faltaSal(),
+                pedido != null && pedido.faltaAgua(),
+                pedido != null && pedido.faltaHierbas(),
+                pedido == null ? 0f : pedido.getProporcionRestante());
         }
     }
 
@@ -423,28 +426,28 @@ public class ServidorJuego extends ApplicationAdapter {
 
     public void imprimirEstado() {
         Registro.info("Fase: " + fase + " | Ticks: " + ticks
-                + " | Recibidos: " + red.getPaquetesRecibidos()
-                + " | Enviados: " + red.getPaquetesEnviados()
-                + " | Descartados: " + red.getPaquetesDescartados()
-                + " | En cola: " + red.getPaquetesEnCola());
+            + " | Recibidos: " + red.getPaquetesRecibidos()
+            + " | Enviados: " + red.getPaquetesEnviados()
+            + " | Descartados: " + red.getPaquetesDescartados()
+            + " | En cola: " + red.getPaquetesEnCola());
         for (SesionJugador sesion : sesiones.todas()) {
             String detalle = sesion.estaConectado()
-                    ? sesion.getNombre() + " en " + sesion.getDireccion() + (sesion.estaListo() ? " (listo)" : "")
-                        + " | eventos sin confirmar: " + sesion.getCanal().getPendientes()
-                        + " | reenvíos: " + sesion.getCanal().getReenvios()
-                    : "libre";
+                ? sesion.getNombre() + " en " + sesion.getDireccion() + (sesion.estaListo() ? " (listo)" : "")
+                  + " | eventos sin confirmar: " + sesion.getCanal().getPendientes()
+                  + " | reenvíos: " + sesion.getCanal().getReenvios()
+                : "libre";
             Registro.info("Jugador " + sesion.getNumero() + ": " + detalle);
         }
         if (partida == null) {
             return;
         }
         Registro.info("Tiempo: " + Math.round(partida.getTiempoRestante()) + " s | Pedidos: "
-                + partida.getPedidosCompletados() + " | Fallos: " + partida.getPedidosFallidos()
-                + " | Puntaje: " + partida.getPuntaje());
+            + partida.getPedidosCompletados() + " | Fallos: " + partida.getPedidosFallidos()
+            + " | Puntaje: " + partida.getPuntaje());
         for (int numero = 1; numero <= Constantes.CANTIDAD_JUGADORES; numero++) {
             JugadorServidor jugador = partida.getJugador(numero);
             Registro.info("Cuerpo del jugador " + numero + " en (" + Math.round(jugador.getCentroX()) + ", "
-                    + Math.round(jugador.getCentroY()) + ") con " + jugador.getObjetoEnMano().getEtiqueta());
+                + Math.round(jugador.getCentroY()) + ") con " + jugador.getObjetoEnMano().getEtiqueta());
         }
     }
 

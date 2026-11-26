@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.Disposable;
 
 import juego.chihiro.mundo.EstadoTina;
 import juego.chihiro.mundo.ObjetoEnMano;
+import juego.chihiro.mundo.TipoEspiritu;
 import juego.chihiro.mundo.TipoInteractivo;
 import juego.chihiro.red.Efecto;
 import juego.chihiro.servidor.fisica.MapaServidor;
@@ -25,6 +26,7 @@ public class Partida implements Disposable {
     private final JugadorServidor[] jugadores = new JugadorServidor[Constantes.CANTIDAD_JUGADORES];
     private final Array<TinaServidor> tinas = new Array<>();
     private final List<Aviso> avisos = new ArrayList<Aviso>();
+    private final TipoEspiritu[] tiposDePedido = TipoEspiritu.values();
 
     private float tiempoRestante = Constantes.DURACION_NIVEL;
     private float esperaProximoPedido = Constantes.ESPERA_PRIMER_PEDIDO;
@@ -136,8 +138,10 @@ public class Partida implements Disposable {
             return;
         }
         TinaServidor elegida = libres.random();
-        elegida.recibirEspiritu(new PedidoServidor());
-        avisarATodos("Llegó un espíritu a la tina " + elegida.getNumero(), Efecto.NINGUNO);
+        TipoEspiritu tipo = tiposDePedido[MathUtils.random(tiposDePedido.length - 1)];
+        elegida.recibirEspiritu(new PedidoServidor(tipo));
+        avisarATodos("Llegó un " + tipo.getNombre().toLowerCase() + " a la tina " + elegida.getNumero()
+            + ": quiere " + elegida.getPedido().describirFaltantes(), Efecto.NINGUNO);
     }
 
     private int pedidosActivos() {
@@ -193,6 +197,9 @@ public class Partida implements Disposable {
             case DEPOSITO_SUCIEDAD:
                 usarDeposito(jugador);
                 break;
+            case ESTANTE_HIERBAS:
+                tomarHierbas(jugador);
+                break;
             default:
                 rechazar(jugador, "Eso no se puede usar");
                 break;
@@ -245,6 +252,15 @@ public class Partida implements Disposable {
         aceptar(jugador, "Tomaste sales aromáticas", Efecto.TOMAR);
     }
 
+    private void tomarHierbas(JugadorServidor jugador) {
+        if (!jugador.tieneLasManosLibres()) {
+            rechazar(jugador, "Tenés las manos ocupadas");
+            return;
+        }
+        jugador.setObjetoEnMano(ObjetoEnMano.HIERBAS);
+        aceptar(jugador, "Tomaste hierbas medicinales", Efecto.TOMAR);
+    }
+
     private void usarCaldera(JugadorServidor jugador) {
         if (!calderaEncendida) {
             calderaEncendida = true;
@@ -285,7 +301,9 @@ public class Partida implements Disposable {
         }
         PedidoServidor pedido = tina.getPedido();
         if (!pedido.necesita(jugador.getObjetoEnMano())) {
-            rechazar(jugador, "Este pedido no necesita eso");
+            rechazar(jugador, jugador.tieneLasManosLibres()
+                ? "Este espíritu quiere " + pedido.describirFaltantes()
+                : "El " + pedido.getTipo().getNombre().toLowerCase() + " no necesita eso");
             return;
         }
         pedido.entregar(jugador.getObjetoEnMano());
@@ -295,13 +313,14 @@ public class Partida implements Disposable {
             aceptar(jugador, "¡Espíritu satisfecho! La tina " + tina.getNumero() + " quedó sucia: limpiala",
                 Efecto.PEDIDO_COMPLETO);
         } else {
-            aceptar(jugador, "Entregado, falta lo otro", Efecto.ENTREGAR);
+            aceptar(jugador, "Entregado, todavía falta: " + pedido.describirFaltantes(), Efecto.ENTREGAR);
         }
     }
 
     private void completar(TinaServidor tina) {
-        float bonus = tina.getPedido().getProporcionRestante();
-        puntaje += Constantes.PUNTOS_POR_PEDIDO + Math.round(bonus * Constantes.PUNTOS_POR_PEDIDO);
+        PedidoServidor pedido = tina.getPedido();
+        int puntos = pedido.getTipo().getPuntos();
+        puntaje += puntos + Math.round(pedido.getProporcionRestante() * puntos);
         pedidosCompletados++;
         tina.ensuciar();
     }

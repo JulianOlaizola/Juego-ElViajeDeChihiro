@@ -18,13 +18,15 @@ import juego.chihiro.utiles.Recursos;
 public class Hud {
     private static final float MARGEN = 14f;
     private static final float ALTO_BARRA_SUPERIOR = 42f;
-    private static final float ANCHO_TARJETA = 210f;
+    private static final float ANCHO_TARJETA = 230f;
+    private static final float TAM_ICONO = 20f;
 
     private static final Color FONDO = new Color(0f, 0f, 0f, 0.55f);
     private static final Color RIEL = new Color(1f, 1f, 1f, 0.18f);
     private static final Color VERDE = new Color(0.45f, 0.82f, 0.55f, 0.95f);
     private static final Color ROJO = new Color(0.92f, 0.42f, 0.38f, 0.95f);
     private static final Color NARANJA = new Color(0.95f, 0.62f, 0.25f, 0.95f);
+    private static final Color MARRON = new Color(0.82f, 0.62f, 0.38f, 1f);
 
     private final Recursos recursos;
     private final AdministradorAudio audio;
@@ -89,32 +91,55 @@ public class Hud {
 
         for (InstantaneaPartida.DatosTina tina : estado.getTinas()) {
             indice++;
+            if (tina.getEstado() == EstadoTina.SUCIA) {
+                y = dibujarTinaSucia(batch, indice, y);
+                continue;
+            }
             if (tina.getEstado() != EstadoTina.OCUPADA) {
                 continue;
             }
 
             panel(batch, MARGEN, y, ANCHO_TARJETA, alto, FONDO);
 
-            StringBuilder falta = new StringBuilder("falta: ");
+            fuente.setColor(Color.WHITE);
+            fuente.draw(batch, "Tina " + indice + ": " + tina.getTipo().getNombre(), MARGEN + 8f, y + alto - 10f);
+            fuente.setColor(Color.GOLD);
+            fuente.draw(batch, "quiere:", MARGEN + 8f, y + alto - 28f);
+            fuente.setColor(Color.WHITE);
+            float xIcono = MARGEN + 64f;
             if (tina.faltaSal()) {
-                falta.append("sales ");
+                xIcono = icono(batch, ObjetoEnMano.SAL, xIcono, y + alto - 42f);
             }
             if (tina.faltaAgua()) {
-                falta.append("agua");
+                xIcono = icono(batch, ObjetoEnMano.BALDE_AGUA, xIcono, y + alto - 42f);
+            }
+            if (tina.faltaHierbas()) {
+                icono(batch, ObjetoEnMano.HIERBAS, xIcono, y + alto - 42f);
             }
 
-            fuente.setColor(Color.WHITE);
-            fuente.draw(batch, "Tina " + indice, MARGEN + 8f, y + alto - 10f);
-            fuente.setColor(Color.GOLD);
-            fuente.draw(batch, falta.toString().trim(), MARGEN + 8f, y + alto - 28f);
-            fuente.setColor(Color.WHITE);
-
             float proporcion = tina.getProporcion();
-            barra(batch, MARGEN + 8f, y + 10f, ANCHO_TARJETA - 16f, 7f, proporcion,
-                  proporcion < 0.3f ? ROJO : VERDE);
+            barra(batch, MARGEN + 8f, y + 6f, ANCHO_TARJETA - 16f, 6f, proporcion,
+                proporcion < 0.3f ? ROJO : VERDE);
 
             y -= alto + 8f;
         }
+    }
+
+    private float icono(SpriteBatch batch, ObjetoEnMano objeto, float x, float y) {
+        batch.draw(recursos.objeto(objeto.getIndiceRegion()), x, y, TAM_ICONO, TAM_ICONO);
+        return x + TAM_ICONO + 4f;
+    }
+
+    private float dibujarTinaSucia(SpriteBatch batch, int indice, float yPedido) {
+        float alto = 30f;
+        float y = yPedido + 56f - alto;
+        panel(batch, MARGEN, y, ANCHO_TARJETA, alto, FONDO);
+        panel(batch, MARGEN, y, 4f, alto, MARRON);
+        BitmapFont fuente = recursos.getFuenteChica();
+        fuente.setColor(MARRON);
+        fuente.draw(batch, "Tina " + indice + " sucia: limpiala", MARGEN + 10f, y + alto - 9f);
+        fuente.setColor(Color.WHITE);
+        return y - 8f - 56f;
     }
 
     private void dibujarCaldera(SpriteBatch batch, InstantaneaPartida estado) {

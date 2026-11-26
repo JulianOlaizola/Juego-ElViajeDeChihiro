@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="40" height="26" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="24">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="40" height="26" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="26">
  <tileset firstgid="1" name="casa_banos" tilewidth="32" tileheight="32" tilecount="24" columns="4">
   <image source="tileset_casa_banos.png" width="128" height="192"/>
  </tileset>
@@ -44,8 +44,8 @@
 4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,
 4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,
 4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,
-4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,
-4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,
+4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,17,17,17,17,0,4,
+4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,17,17,17,17,0,4,
 4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,
 4,0,0,0,0,0,0,0,4,4,4,4,4,4,4,4,4,4,4,0,0,0,4,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,4,
 4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,
@@ -78,6 +78,7 @@
    <object id="12" x="1088" y="128" width="128" height="64"/>
    <object id="13" x="1088" y="608" width="128" height="64"/>
    <object id="14" x="96" y="672" width="64" height="64"/>
+  <object id="24" x="1088" y="288" width="128" height="64"/>
  </objectgroup>
  <objectgroup id="4" name="interactivos">
    <object id="15" name="tina_1" x="128" y="128" width="64" height="64">
@@ -108,6 +109,11 @@
    <object id="20" name="caldera" x="1088" y="608" width="128" height="64">
     <properties>
      <property name="tipo" value="caldera"/>
+    </properties>
+   </object>
+   <object id="25" name="estante_hierbas" x="1088" y="288" width="128" height="64">
+    <properties>
+     <property name="tipo" value="estante_hierbas"/>
     </properties>
    </object>
    <object id="21" name="deposito_suciedad" x="96" y="672" width="64" height="64">

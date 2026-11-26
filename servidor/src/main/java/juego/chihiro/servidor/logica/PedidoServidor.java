@@ -1,13 +1,23 @@
 package juego.chihiro.servidor.logica;
 
 import juego.chihiro.mundo.ObjetoEnMano;
-import juego.chihiro.utiles.Constantes;
+import juego.chihiro.mundo.TipoEspiritu;
 
 public class PedidoServidor {
 
-    private boolean salEntregada;
-    private boolean aguaEntregada;
-    private float tiempoRestante = Constantes.TIEMPO_PEDIDO;
+    private final TipoEspiritu tipo;
+    private boolean faltaSal;
+    private boolean faltaAgua;
+    private boolean faltaHierbas;
+    private float tiempoRestante;
+
+    public PedidoServidor(TipoEspiritu tipo) {
+        this.tipo = tipo;
+        this.faltaSal = tipo.necesitaSal();
+        this.faltaAgua = tipo.necesitaAgua();
+        this.faltaHierbas = tipo.necesitaHierbas();
+        this.tiempoRestante = tipo.getTiempo();
+    }
 
     public void actualizar(float delta) {
         tiempoRestante -= delta;
@@ -18,36 +28,69 @@ public class PedidoServidor {
     }
 
     public boolean estaCompleto() {
-        return salEntregada && aguaEntregada;
+        return !faltaSal && !faltaAgua && !faltaHierbas;
     }
 
     public boolean necesita(ObjetoEnMano objeto) {
-        if (objeto == ObjetoEnMano.SAL) {
-            return !salEntregada;
+        switch (objeto) {
+            case SAL:
+                return faltaSal;
+            case BALDE_AGUA:
+                return faltaAgua;
+            case HIERBAS:
+                return faltaHierbas;
+            default:
+                return false;
         }
-        if (objeto == ObjetoEnMano.BALDE_AGUA) {
-            return !aguaEntregada;
-        }
-        return false;
     }
 
     public void entregar(ObjetoEnMano objeto) {
-        if (objeto == ObjetoEnMano.SAL) {
-            salEntregada = true;
-        } else if (objeto == ObjetoEnMano.BALDE_AGUA) {
-            aguaEntregada = true;
+        switch (objeto) {
+            case SAL:
+                faltaSal = false;
+                break;
+            case BALDE_AGUA:
+                faltaAgua = false;
+                break;
+            case HIERBAS:
+                faltaHierbas = false;
+                break;
+            default:
+                break;
         }
     }
 
+    public String describirFaltantes() {
+        StringBuilder texto = new StringBuilder();
+        if (faltaSal) {
+            texto.append("sales");
+        }
+        if (faltaAgua) {
+            texto.append(texto.length() > 0 ? ", " : "").append("agua caliente");
+        }
+        if (faltaHierbas) {
+            texto.append(texto.length() > 0 ? ", " : "").append("hierbas");
+        }
+        return texto.toString();
+    }
+
+    public TipoEspiritu getTipo() {
+        return tipo;
+    }
+
     public boolean faltaSal() {
-        return !salEntregada;
+        return faltaSal;
     }
 
     public boolean faltaAgua() {
-        return !aguaEntregada;
+        return faltaAgua;
+    }
+
+    public boolean faltaHierbas() {
+        return faltaHierbas;
     }
 
     public float getProporcionRestante() {
-        return Math.max(0f, tiempoRestante / Constantes.TIEMPO_PEDIDO);
+        return Math.max(0f, tiempoRestante / tipo.getTiempo());
     }
 }
