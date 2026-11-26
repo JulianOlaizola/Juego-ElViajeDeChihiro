@@ -23,8 +23,8 @@ public class MapaCasaBanos {
     private final float ancho;
     private final float alto;
 
-    public MapaCasaBanos(AssetManager assets) {
-        mapa = assets.get(Constantes.RUTA_MAPA, TiledMap.class);
+    public MapaCasaBanos(AssetManager assets, String ruta) {
+        mapa = assets.get(ruta, TiledMap.class);
 
         TiledMapTileLayer capaPiso =
             (TiledMapTileLayer) mapa.getLayers().get(Constantes.CAPA_PISO);

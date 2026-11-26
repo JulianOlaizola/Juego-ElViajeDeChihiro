@@ -38,6 +38,7 @@ public class ServidorJuego extends ApplicationAdapter {
 
     private final ServidorUdp red;
     private final GestorSesiones sesiones = new GestorSesiones();
+    private final MapaServidor[] mapas = new MapaServidor[Constantes.RUTAS_MAPAS.length];
     private MapaServidor mapa;
     private Partida partida;
     private FasePartida fase = FasePartida.SALA;
@@ -53,18 +54,24 @@ public class ServidorJuego extends ApplicationAdapter {
     @Override
     public void create() {
         try {
-            mapa = new MapaServidor(Constantes.RUTA_MAPA);
+            for (int i = 0; i < mapas.length; i++) {
+                mapas[i] = new MapaServidor(Constantes.RUTAS_MAPAS[i]);
+            }
         } catch (MapaInvalidoException e) {
-            Registro.error("No se pudo cargar el mapa del servidor", e);
+            Registro.error("No se pudo cargar un mapa del servidor", e);
             Gdx.app.exit();
             return;
         }
+        mapa = mapas[0];
         instanteAnterior = System.nanoTime();
         nombreServidor = buscarNombreDelEquipo();
 
         Registro.info("Servidor de El Viaje de Chihiro escuchando por UDP en el puerto " + red.getPuerto());
-        Registro.info("Mapa cargado: " + mapa.getColisiones().size + " paredes y "
-            + mapa.getInteractivos().size + " objetos interactivos. Box2D se crea al empezar cada partida.");
+        for (int i = 0; i < mapas.length; i++) {
+            Registro.info("Mapa " + Constantes.RUTAS_MAPAS[i] + " cargado: " + mapas[i].getColisiones().size
+                + " paredes y " + mapas[i].getInteractivos().size + " objetos interactivos");
+        }
+        Registro.info("Box2D se crea de cero al empezar cada partida.");
         mostrarDirecciones();
         Registro.info("Esperando jugadores. Comandos disponibles: estado, ip, terminar, ayuda, salir");
     }

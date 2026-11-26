@@ -71,7 +71,7 @@ public class PantallaJuego extends ScreenAdapter {
         vistaMundo = new FitViewport(Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA, camaraMundo);
         vistaHud = new FitViewport(Constantes.ANCHO_VISTA, Constantes.ALTO_VISTA, camaraHud);
 
-        mapa = new MapaCasaBanos(juego.getAssets());
+        mapa = new MapaCasaBanos(juego.getAssets(), Constantes.RUTAS_MAPAS[0]);
         renderizadorMapa = new OrthogonalTiledMapRenderer(mapa.getMapa(), 1f, juego.getBatch());
 
         for (int i = 0; i < jugadores.length; i++) {

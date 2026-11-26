@@ -8,7 +8,11 @@ public final class Constantes {
     public static final float ANCHO_VISTA = 960f;
     public static final float ALTO_VISTA = 540f;
 
-    public static final String RUTA_MAPA = "mapas/salon.tmx";
+    public static final String[] RUTAS_MAPAS = {
+        "mapas/salon.tmx",
+        "mapas/nivel2.tmx",
+        "mapas/nivel3.tmx"
+    };
     public static final int TAM_TILE = 32;
     public static final String CAPA_PISO = "piso";
     public static final String CAPA_DECORACION = "decoracion";

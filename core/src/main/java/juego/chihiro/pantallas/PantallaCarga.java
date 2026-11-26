@@ -43,7 +43,9 @@ public class PantallaCarga extends ScreenAdapter {
         assets.load(Constantes.RUTA_OBJETOS, Texture.class);
         assets.load(Constantes.RUTA_LOGO, Texture.class);
         assets.load(Constantes.RUTA_PIXEL, Texture.class);
-        assets.load(Constantes.RUTA_MAPA, TiledMap.class);
+        for (String rutaMapa : Constantes.RUTAS_MAPAS) {
+            assets.load(rutaMapa, TiledMap.class);
+        }
         assets.load(Constantes.RUTA_MUSICA, Music.class);
         assets.load(Constantes.RUTA_TOMAR, Sound.class);
         assets.load(Constantes.RUTA_ENTREGAR, Sound.class);
@@ -57,8 +59,8 @@ public class PantallaCarga extends ScreenAdapter {
         boolean termino = juego.getAssets().update();
 
         progresoMostrado = MathUtils.lerp(progresoMostrado,
-                                          juego.getAssets().getProgress(),
-                                          Math.min(1f, delta * 8f));
+            juego.getAssets().getProgress(),
+            Math.min(1f, delta * 8f));
 
         ScreenUtils.clear(0.07f, 0.05f, 0.09f, 1f);
         vista.apply();
